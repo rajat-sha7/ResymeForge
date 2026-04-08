@@ -2,7 +2,7 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #000000;
 }
 
 @theme inline {
@@ -12,15 +12,147 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Keep application in a light-only mode. Dark-mode related rules removed. */
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Ensure form input text is visible against backgrounds */
+input,
+textarea,
+select {
+  color: var(--foreground);
+}
+
+/* Consistent placeholder color */
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+}
+
+/* Force entered text and caret to pure black for readability (non-disabled controls) */
+input:not([disabled]),
+textarea:not([disabled]),
+select:not([disabled]) {
+  color: #000 !important;
+  caret-color: #000 !important;
+}
+
+/* 3D Rotation Animation for Resume */
+@keyframes rotateY {
+  0%, 100% {
+    transform: perspective(1000px) rotateY(-15deg) rotateX(5deg);
+  }
+  50% {
+    transform: perspective(1000px) rotateY(15deg) rotateX(-5deg);
+  }
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* ── Insights article prose styles ── */
+.prose-dark h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin-top: 2.25rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.prose-dark h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-dark p {
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  color: #9ca3af;
+  margin-bottom: 1.1rem;
+}
+
+.prose-dark ul,
+.prose-dark ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1.25rem;
+  color: #9ca3af;
+  font-size: 0.9375rem;
+  line-height: 1.8;
+}
+
+.prose-dark li {
+  margin-bottom: 0.4rem;
+}
+
+.prose-dark li::marker {
+  color: #4b83f8;
+}
+
+.prose-dark strong {
+  color: #e5e7eb;
+  font-weight: 600;
+}
+
+.prose-dark em {
+  color: #d1d5db;
+  font-style: italic;
+}
+
+.prose-dark blockquote {
+  border-left: 3px solid #3b82f6;
+  padding: 0.75rem 1.25rem;
+  margin: 1.5rem 0;
+  background: rgba(59,130,246,0.06);
+  border-radius: 0 0.75rem 0.75rem 0;
+  color: #93c5fd;
+  font-style: italic;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.prose-dark table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.prose-dark th {
+  background: rgba(255,255,255,0.05);
+  color: #e5e7eb;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  text-align: left;
+}
+
+.prose-dark td {
+  color: #9ca3af;
+  padding: 0.6rem 1rem;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+.prose-dark tr:nth-child(even) td {
+  background: rgba(255,255,255,0.02);
+}
+
+.prose-dark a {
+  color: #60a5fa;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prose-dark a:hover {
+  color: #93c5fd;
 }
