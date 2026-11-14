@@ -1,53 +1,66 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import SoftwareTemplate from '../templates/SoftwareTemplate';
-import ManagementTemplate from '../templates/ManagementTemplate';
-import CreativeTemplate from '../templates/CreativeTemplate';
-import AcademicTemplate from '../templates/AcademicTemplate';
-import SalesTemplate from '../templates/SalesTemplate';
-import HealthcareTemplate from '../templates/HealthcareTemplate';
-import { ResumeData } from '../types/resume';
+import dynamic from 'next/dynamic';
+import ResumeDocument from '../components/ResumeDocument';
+import { prepareResumeForRender } from '../utils/resumeRender';
+import { ResumeData, SectionType } from '../types/resume';
+
+type ExportPayload = { resume: ResumeData; enabledSections?: SectionType[] };
+
+declare global {
+  interface Window {
+    /** Injected by the PDF renderer (see app/api/export-pdf) before the page loads. */
+    __RESUME_EXPORT__?: ExportPayload;
+  }
+}
 
 const decodeBase64 = (s: string) => {
   try {
-    // handle unicode
-    return decodeURIComponent(Array.prototype.map.call(atob(s), function(c: string) {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-  } catch (e) {
+    return decodeURIComponent(Array.prototype.map.call(atob(s), (c: string) =>
+      '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+    ).join(''));
+  } catch {
     try { return atob(s); } catch { return ''; }
   }
 };
 
-const PublicPreview: React.FC = () => {
-  const [data, setData] = useState<ResumeData | null>(null);
+const readPayload = (): ExportPayload | null => {
+  if (window.__RESUME_EXPORT__?.resume) return window.__RESUME_EXPORT__;
+  const b = new URLSearchParams(window.location.search).get('data');
+  if (!b) return null;
+  try {
+    const parsed = JSON.parse(decodeBase64(b));
+    return parsed?.resume ? parsed : { resume: parsed };
+  } catch (err) {
+    console.error('Failed to parse resume data', err);
+    return null;
+  }
+};
 
+const PreviewContent: React.FC = () => {
+  // Rendered client-only (see below), so the payload can be read during the first render.
+  const [data] = useState<ResumeData | null>(() => {
+    const payload = readPayload();
+    return payload ? prepareResumeForRender(payload.resume, payload.enabledSections) : null;
+  });
+
+  // Set the PDF's document title, then signal to the PDF renderer that the resume has been painted.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const b = params.get('data');
-    if (!b) return;
-    try {
-      const json = decodeBase64(b);
-      const parsed = JSON.parse(json) as ResumeData;
-      setData(parsed);
-    } catch (err) {
-      console.error('Failed to parse resume data', err);
-    }
-  }, []);
+    const name = data?.personalInfo?.name?.trim();
+    if (name) document.title = `${name} – Resume`;
+    document.body.setAttribute('data-resume-ready', 'true');
+  }, [data]);
 
   if (!data) return <div style={{ padding: 40, fontFamily: 'Arial' }}>No resume data provided.</div>;
 
-  const tpl = (data.template || 'software').toLowerCase();
-  switch (tpl) {
-    case 'software': return <SoftwareTemplate data={data} />;
-    case 'management': return <ManagementTemplate data={data} />;
-    case 'creative': return <CreativeTemplate data={data} />;
-    case 'academic': return <AcademicTemplate data={data} />;
-    case 'sales': return <SalesTemplate data={data} />;
-    case 'healthcare': return <HealthcareTemplate data={data} />;
-    default: return <SoftwareTemplate data={data} />;
-  }
+  return (
+    <div className="resume-paper">
+      <ResumeDocument data={data} />
+    </div>
+  );
 };
+
+const PublicPreview = dynamic(() => Promise.resolve(PreviewContent), { ssr: false });
 
 export default PublicPreview;

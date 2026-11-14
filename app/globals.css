@@ -14,6 +14,43 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* Templates and the builder use an `xs:` breakpoint, which Tailwind v4 does not ship. */
+@theme {
+  --breakpoint-xs: 30rem;
+}
+
+/*
+ * A4 sheet that hosts a resume template. Shared by the on-screen preview and the
+ * server-rendered PDF so both lay out the template at the same width.
+ */
+.resume-paper {
+  width: 210mm;
+  min-height: 297mm;
+  background: #ffffff;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.resume-paper > * {
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  max-width: none !important;
+  min-height: 297mm;
+}
+.resume-paper li,
+.resume-paper p {
+  break-inside: avoid;
+}
+.resume-paper h2 {
+  break-after: avoid;
+}
+@media print {
+  .resume-paper,
+  .resume-paper > * {
+    width: 100%;
+    min-height: 0;
+  }
+}
+
 /* Keep application in a light-only mode. Dark-mode related rules removed. */
 
 body {

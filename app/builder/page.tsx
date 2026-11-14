@@ -10,7 +10,10 @@ import OptimizedLogo from '../homepage/OptimizedLogo';
 import { calculateATSScore } from '../utils/ats';
 import { exportToDOCX } from '../utils/export';
 import { validateResumeData } from '../utils/validation';
+import { generateResumePDF, downloadBlob } from '../utils/pdfExport';
+import { resumeFileName } from '../utils/resumeRender';
 import ValidationModal from '../components/ValidationModal';
+import PdfPreviewModal from '../components/PdfPreviewModal';
 import { TemplateType } from '../types/resume';
 import { useSearchParams } from 'next/navigation';
 
@@ -28,6 +31,8 @@ function BuilderPage() {
   const [showJDInModal, setShowJDInModal] = useState(false);
   const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
   const [isExportGuardOpen, setIsExportGuardOpen] = useState(false);
+  const [pendingExport, setPendingExport] = useState<(() => void) | null>(null);
+  const [isPdfExporting, setIsPdfExporting] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // local state for name prompt (declare before effects)
@@ -120,24 +125,45 @@ function BuilderPage() {
   const executeDocxExport = async () => {
     if (!currentResume) return;
     const orderedSections = sectionOrder.filter((s) => enabledSections.includes(s));
-    const filename = `${currentResume.personalInfo?.name || 'resume'}.docx`
-      .replace(/[^a-zA-Z0-9._-]/g, '_')
-      .slice(0, 255);
     try {
-      await exportToDOCX(currentResume, orderedSections, filename);
+      await exportToDOCX(currentResume, orderedSections, resumeFileName(currentResume, 'docx'));
     } catch (error) {
       console.error('DOCX export failed:', error);
       alert(`Export failed: ${error instanceof Error ? error.message : 'Please try again.'}`);
     }
   };
 
-  const handleExportRequest = () => {
+  /** Downloads `pdf` if given (the file shown in the preview), otherwise renders a fresh one. */
+  const executePdfDownload = async (pdf?: Blob) => {
+    if (!currentResume) return;
+    if (pdf) {
+      downloadBlob(pdf, resumeFileName(currentResume, 'pdf'));
+      return;
+    }
+    if (isPdfExporting) return;
+    setIsPdfExporting(true);
+    try {
+      const blob = await generateResumePDF(currentResume, enabledSections);
+      downloadBlob(blob, resumeFileName(currentResume, 'pdf'));
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      alert(`PDF export failed: ${error instanceof Error ? error.message : 'Please try again.'}`);
+    } finally {
+      setIsPdfExporting(false);
+    }
+  };
+
+  /** Runs an export, first showing the validation guard if the resume has errors. */
+  const requestExport = (run: () => void) => {
     if (validationReport && validationReport.hasErrors) {
+      setPendingExport(() => run);
       setIsExportGuardOpen(true);
       return;
     }
-    executeDocxExport();
+    run();
   };
+
+  const handleExportRequest = () => requestExport(executeDocxExport);
 
   const getScoreColor = (score: number) => {
     if (score >= 85) return 'text-green-600';
@@ -340,12 +366,27 @@ function BuilderPage() {
             <div className="w-1/2 overflow-auto bg-gray-100 p-4 hidden md:block">
               <div className="sticky top-0 bg-white/90 backdrop-blur-xs p-2 rounded-lg mb-3 shadow-xs border border-gray-200 flex items-center justify-between z-10">
                 <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">⚡ Live Preview</span>
-                <button
-                  onClick={handleExportRequest}
-                  className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 transition-colors"
-                >
-                  Export DOCX
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsPreviewModalOpen(true)}
+                    className="px-3 py-1 bg-white border border-gray-300 text-gray-700 text-xs font-medium rounded hover:bg-gray-50 transition-colors"
+                  >
+                    PDF Preview
+                  </button>
+                  <button
+                    onClick={() => requestExport(() => executePdfDownload())}
+                    disabled={isPdfExporting}
+                    className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {isPdfExporting ? 'Generating…' : 'Download PDF'}
+                  </button>
+                  <button
+                    onClick={handleExportRequest}
+                    className="px-3 py-1 bg-green-500 text-white text-xs font-medium rounded hover:bg-green-600 transition-colors"
+                  >
+                    Export DOCX
+                  </button>
+                </div>
               </div>
               <Preview />
             </div>
@@ -457,52 +498,30 @@ function BuilderPage() {
       {validationReport && (
         <ValidationModal
           isOpen={isExportGuardOpen}
-          onClose={() => setIsExportGuardOpen(false)}
+          onClose={() => {
+            setIsExportGuardOpen(false);
+            setPendingExport(null);
+          }}
           report={validationReport}
-          onNavigateToSection={handleNavigateToSection}
+          onNavigateToSection={(id) => {
+            setIsPreviewModalOpen(false);
+            handleNavigateToSection(id);
+          }}
           isExportGuard
-          onProceedExport={executeDocxExport}
+          onProceedExport={() => pendingExport?.()}
         />
       )}
 
-      {/* Preview Modal */}
-      {isPreviewModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-800">Resume Preview</h2>
-              <button
-                onClick={() => setIsPreviewModalOpen(false)}
-                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                aria-label="Close preview"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="flex-1 overflow-auto p-4">
-              <Preview />
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-3 p-4 border-t border-gray-200">
-              <button
-                onClick={() => setIsPreviewModalOpen(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-              >
-                Close
-              </button>
-              <button
-                onClick={handleExportRequest}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-              >
-                Export DOCX
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* PDF Preview Modal — shows the real PDF and downloads that same file */}
+      {currentResume && (
+        <PdfPreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={() => setIsPreviewModalOpen(false)}
+          resume={currentResume}
+          enabledSections={enabledSections}
+          onDownloadPdf={(pdf) => requestExport(() => executePdfDownload(pdf))}
+          onExportDocx={handleExportRequest}
+        />
       )}
 
       {/* ATS Report Modal */}

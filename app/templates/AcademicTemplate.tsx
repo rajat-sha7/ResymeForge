@@ -1,5 +1,6 @@
 import React from "react";
 import { ResumeData } from "../types/resume";
+import { formatDateRange } from "../utils/resumeRender";
 
 
 const AcademicTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
@@ -48,9 +49,9 @@ const AcademicTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
           <div className="space-y-3">
             {data.education.map(edu => (
               <div key={edu.id} className="border-l-4 border-green-300 pl-4">
-                <p className="font-bold text-sm">{edu.degree} in {edu.field}</p>
+                <p className="font-bold text-sm">{[edu.degree, edu.field].filter(Boolean).join(' in ')}</p>
                 <p className="text-sm font-semibold" style={{ color: '#059669' }}>{edu.institution}</p>
-                <p className="text-xs text-gray-600">{edu.startDate} - {edu.endDate}</p>
+                <p className="text-xs text-gray-600">{formatDateRange(edu.startDate, edu.endDate)}</p>
                 {edu.gpa && edu.showGpa && <p className="text-xs text-gray-700 mt-1">GPA: {edu.gpa}</p>}
               </div>
             ))}
@@ -67,7 +68,7 @@ const AcademicTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
               <div key={exp.id} className="mb-3">
                 <div className="flex justify-between items-start mb-1">
                   <p className="font-bold text-sm">{exp.position}</p>
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">{exp.startDate} - {exp.endDate}</span>
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">{formatDateRange(exp.startDate, exp.endDate, exp.current)}</span>
                 </div>
                 <p className="text-sm font-semibold text-gray-700">{exp.company}, {exp.location}</p>
                 <p className="text-sm mt-1 text-gray-700">{exp.description}</p>

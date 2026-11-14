@@ -1,5 +1,6 @@
 import React from "react";
 import { ResumeData } from "../types/resume";
+import { formatDateRange } from "../utils/resumeRender";
 
 
 const SalesTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
@@ -48,7 +49,7 @@ const SalesTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
               <div key={exp.id} className="border-l-4 border-amber-400 pl-4 bg-orange-50 p-3 rounded-r">
                 <div className="flex justify-between items-start mb-1">
                   <p className="font-bold text-sm text-gray-900">{exp.position}</p>
-                  <span className="text-xs font-bold text-white bg-orange-600 px-2 py-1 rounded">{exp.startDate} - {exp.endDate}</span>
+                  <span className="text-xs font-bold text-white bg-orange-600 px-2 py-1 rounded">{formatDateRange(exp.startDate, exp.endDate, exp.current)}</span>
                 </div>
                 <p className="text-sm font-semibold text-orange-700">{exp.company}</p>
                 <p className="text-xs text-gray-600 mb-2">{exp.location}</p>
@@ -113,7 +114,7 @@ const SalesTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
                 <div key={edu.id} className="text-xs">
                   <p className="font-bold text-gray-900">{edu.degree}</p>
                   <p className="text-orange-700 font-semibold">{edu.institution}</p>
-                  <p className="text-gray-600">{edu.startDate} - {edu.endDate}</p>
+                  <p className="text-gray-600">{formatDateRange(edu.startDate, edu.endDate)}</p>
                 </div>
               ))}
             </div>

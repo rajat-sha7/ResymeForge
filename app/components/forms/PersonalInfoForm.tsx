@@ -14,6 +14,8 @@ import {
   maxLength,
 } from '../../utils/validation';
 
+const VALIDATED_FIELDS: (keyof PersonalInfo)[] = ['name', 'email', 'phone', 'linkedin', 'github', 'portfolio'];
+
 interface PersonalInfoFormProps {
   data: PersonalInfo;
 }
@@ -65,6 +67,31 @@ const PersonalInfoForm: React.FC<PersonalInfoFormProps> = ({ data }) => {
         return null;
     }
   };
+
+  // Show errors for fields that already hold invalid values (e.g. after reload), and
+  // for every field — including empty required ones — when the user is sent here
+  // from the validation report ("Fix section") or the export guard.
+  useEffect(() => {
+    const collect = (includeEmpty: boolean) => {
+      const next: { [key: string]: string } = {};
+      VALIDATED_FIELDS.forEach((field) => {
+        const value = (data?.[field] as string) || '';
+        if (!includeEmpty && !value.trim()) return;
+        const error = validateField(field, value);
+        if (error) next[field] = error;
+      });
+      return next;
+    };
+
+    setErrors((prev) => ({ ...collect(false), ...prev }));
+
+    const onShowErrors = (e: Event) => {
+      if ((e as CustomEvent).detail !== 'personalInfo') return;
+      setErrors(collect(true));
+    };
+    window.addEventListener('expand-editor-section', onShowErrors);
+    return () => window.removeEventListener('expand-editor-section', onShowErrors);
+  }, [data]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

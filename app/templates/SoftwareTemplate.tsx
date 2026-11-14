@@ -1,5 +1,6 @@
 import React from "react";
 import { ResumeData } from "../types/resume";
+import { formatDateRange, getSummaryText } from "../utils/resumeRender";
 
 
 const SoftwareTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
@@ -20,6 +21,15 @@ const SoftwareTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
     other: 'Other Skills',
   };
 
+  const pi = data.personalInfo;
+  const summary = getSummaryText(data.professionalSummary);
+  const contactLine = [pi?.email, pi?.phone, pi?.location].filter((v): v is string => !!v && !!v.trim());
+  const linkLine = [
+    pi?.linkedin && `LinkedIn: ${pi.linkedin}`,
+    pi?.github && `GitHub: ${pi.github}`,
+    pi?.portfolio && `Portfolio: ${pi.portfolio}`,
+  ].filter((v): v is string => !!v);
+
   return (
     <div
       className="bg-white text-black rounded-lg shadow-lg p-3 xs:p-4 sm:p-6 md:p-8 lg:p-10 max-w-full md:max-w-200 mx-auto w-full print:shadow-none print:rounded-none print:p-3 xs:print:p-4 sm:print:p-6 md:print:p-8 lg:print:p-10"
@@ -27,34 +37,21 @@ const SoftwareTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
     >
       {/* Personal Info */}
       <div className="mb-5 text-center border-b-2 border-blue-700 pb-2 xs:pb-3 sm:pb-4">
-        <h1 className="text-lg xs:text-xl sm:text-2xl font-bold uppercase tracking-wide mb-1 xs:mb-2 text-blue-700 wrap-break-word">{data.personalInfo?.name || 'Your Name'}</h1>
-        <div className="flex flex-wrap justify-center gap-x-1 xs:gap-x-2 gap-y-1 text-xs xs:text-sm sm:text-base text-gray-800">
-          <span>{data.personalInfo?.email || 'email@example.com'}</span>
-          <span className="hidden xs:inline">|</span>
-          <span>{data.personalInfo?.phone || '123-456-7890'}</span>
-          <span className="hidden xs:inline">|</span>
-          <span>{data.personalInfo?.location || 'City, Country'}</span>
-        </div>
-        <div className="flex flex-wrap justify-center gap-x-1 xs:gap-x-2 gap-y-1 text-xs xs:text-sm sm:text-base text-gray-600 mt-1">
-          <span>LinkedIn: {data.personalInfo?.linkedin || 'linkedin.com/in/yourprofile'}</span>
-          <span className="hidden xs:inline">|</span>
-          <span>GitHub: {data.personalInfo?.github || 'github.com/yourprofile'}</span>
-          <span className="hidden xs:inline">|</span>
-          <span>Portfolio: {data.personalInfo?.portfolio || 'yourportfolio.com'}</span>
-        </div>
+        <h1 className="text-lg xs:text-xl sm:text-2xl font-bold uppercase tracking-wide mb-1 xs:mb-2 text-blue-700 wrap-break-word">{pi?.name || 'Your Name'}</h1>
+        {pi?.title && <div className="text-sm text-gray-700 mb-1">{pi.title}</div>}
+        {contactLine.length > 0 && (
+          <div className="text-xs xs:text-sm text-gray-800 wrap-break-word">{contactLine.join('  |  ')}</div>
+        )}
+        {linkLine.length > 0 && (
+          <div className="text-xs xs:text-sm text-gray-600 mt-1 wrap-break-word">{linkLine.join('  |  ')}</div>
+        )}
       </div>
 
       {/* Professional Summary */}
-      {data.professionalSummary && (
+      {summary && (
           <div className="mb-5">
             <h2 className="text-xs sm:text-sm font-bold uppercase border-b border-blue-400 pb-1 mb-2 tracking-wide">Professional Summary</h2>
-            <p className="text-xs sm:text-sm text-gray-800">
-              {
-                typeof data.professionalSummary === 'string'
-                  ? (data.professionalSummary || 'Experienced software engineer with a passion for building impactful products.')
-                  : (data.professionalSummary?.summary || 'Experienced software engineer with a passion for building impactful products.')
-              }
-            </p>
+            <p className="text-xs sm:text-sm text-gray-800">{summary}</p>
           </div>
       )}
 
@@ -84,7 +81,7 @@ const SoftwareTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
                 <li key={exp.id} className="mb-2">
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                     <span className="font-bold break-words">{exp.position} @ {exp.company}</span>
-                    <span className="text-xs text-gray-500">{exp.startDate} - {exp.endDate}</span>
+                    <span className="text-xs text-gray-500">{formatDateRange(exp.startDate, exp.endDate, exp.current)}</span>
                   </div>
                   <div className="text-xs text-gray-500">{exp.location}</div>
                   <div className="text-xs sm:text-sm">{exp.description}</div>
@@ -129,8 +126,8 @@ const SoftwareTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
               {data.education.map(edu => (
                 <li key={edu.id} className="mb-2">
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
-                    <span className="font-bold break-words">{edu.degree} in {edu.field}</span>
-                    <span className="text-xs text-gray-500">{edu.startDate} - {edu.endDate}</span>
+                    <span className="font-bold break-words">{[edu.degree, edu.field].filter(Boolean).join(' in ')}</span>
+                    <span className="text-xs text-gray-500">{formatDateRange(edu.startDate, edu.endDate)}</span>
                   </div>
                   <div className="text-xs text-gray-500">{edu.institution}{edu.location ? `, ${edu.location}` : ''}</div>
                   {edu.gpa && edu.showGpa && <div className="text-xs">GPA: {edu.gpa}</div>}
@@ -141,35 +138,38 @@ const SoftwareTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
       )}
 
       {/* Certifications */}
-      <div className="mb-5">
-        <h2 className="text-sm font-bold uppercase border-b border-blue-400 pb-1 mb-2">Certifications</h2>
-        <ul>
-          {(data.certifications && data.certifications.length > 0 ? data.certifications : [
-            { id: 'cert-placeholder', name: 'Certified Web Developer', issuer: 'Coursera', date: '2022', link: '' }
-          ]).map(cert => (
-            <li key={cert.id} className="mb-2">
-              <span className="font-bold">{cert.name}</span> - {cert.issuer} ({cert.date})
-              {cert.link && <a href={cert.link} className="text-xs text-blue-600 underline ml-2" target="_blank" rel="noopener noreferrer">{cert.link}</a>}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {data.certifications && data.certifications.length > 0 && (
+        <div className="mb-5">
+          <h2 className="text-xs sm:text-sm font-bold uppercase border-b border-blue-400 pb-1 mb-2 tracking-wide">Certifications</h2>
+          <ul>
+            {data.certifications.map(cert => (
+              <li key={cert.id} className="mb-2 text-xs sm:text-sm">
+                <span className="font-bold">{cert.name}</span>
+                {cert.issuer && <> – {cert.issuer}</>}
+                {cert.date && <> ({cert.date})</>}
+                {cert.link && <a href={cert.link} className="text-xs text-blue-600 underline ml-2" target="_blank" rel="noopener noreferrer">{cert.link}</a>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Achievements */}
-      <div className="mb-5">
-        <h2 className="text-sm font-bold uppercase border-b border-blue-400 pb-1 mb-2">Achievements & Awards</h2>
-        <ul>
-          {(data.achievements && data.achievements.length > 0 ? data.achievements : [
-            { id: 'ach-placeholder', title: 'Employee of the Month', description: 'Recognized for outstanding performance.', date: '2021', impact: 'Boosted team morale' }
-          ]).map(ach => (
-            <li key={ach.id} className="mb-2">
-              <span className="font-bold">{ach.title}</span> - {ach.date}
-              <div className="text-xs">{ach.description}</div>
-              {ach.impact && <div className="text-xs italic text-blue-600">Impact: {ach.impact}</div>}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {data.achievements && data.achievements.length > 0 && (
+        <div className="mb-5">
+          <h2 className="text-xs sm:text-sm font-bold uppercase border-b border-blue-400 pb-1 mb-2 tracking-wide">Achievements & Awards</h2>
+          <ul>
+            {data.achievements.map(ach => (
+              <li key={ach.id} className="mb-2 text-xs sm:text-sm">
+                <span className="font-bold">{ach.title}</span>
+                {ach.date && <> – {ach.date}</>}
+                {ach.description && <div className="text-xs">{ach.description}</div>}
+                {ach.impact && <div className="text-xs italic text-blue-600">Impact: {ach.impact}</div>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,23 +1,41 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useResumeStore } from '../store/resumeStore';
-import BaseTemplate from '../templates/BaseTemplate';
-import SoftwareTemplate from '../templates/SoftwareTemplate';
-import ManagementTemplate from '../templates/ManagementTemplate';
-import CreativeTemplate from '../templates/CreativeTemplate';
-import AcademicTemplate from '../templates/AcademicTemplate';
-import SalesTemplate from '../templates/SalesTemplate';
-import HealthcareTemplate from '../templates/HealthcareTemplate';
-import { exportToDOCX } from '../utils/export';
+import ResumeDocument from './ResumeDocument';
+import { prepareResumeForRender } from '../utils/resumeRender';
 
+/**
+ * Live HTML preview of the current resume on an A4 sheet. It uses the same renderer
+ * as the PDF export (ResumeDocument inside .resume-paper).
+ */
 const Preview: React.FC = () => {
-  const { currentResumeId, resumes, sectionOrder, enabledSections } = useResumeStore();
-  const previewRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.75);
-  const [isExporting, setIsExporting] = useState(false);
+  const { currentResumeId, resumes, enabledSections } = useResumeStore();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [fitScale, setFitScale] = useState(0.75);
+  // null = fit the sheet to the panel width; a number = user-chosen zoom.
+  const [userScale, setUserScale] = useState<number | null>(null);
+  const scale = userScale ?? fitScale;
+  const resume = currentResumeId ? resumes[currentResumeId] : null;
 
-  if (!currentResumeId || !resumes[currentResumeId]) {
+  const renderData = useMemo(
+    () => (resume ? prepareResumeForRender(resume, enabledSections) : null),
+    [resume, enabledSections]
+  );
+
+  const hasResume = renderData !== null;
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const A4_WIDTH_PX = 794; // 210mm at 96dpi
+    const update = () => setFitScale(Math.max(0.3, Math.min(1, (el.clientWidth - 8) / A4_WIDTH_PX)));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [hasResume]);
+
+  if (!renderData) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-100">
         <div className="text-center p-8">
@@ -29,181 +47,42 @@ const Preview: React.FC = () => {
     );
   }
 
-  const resume = resumes[currentResumeId];
-  const orderedSections = sectionOrder.filter(s => enabledSections.includes(s));
-
-  // Template switcher
-  const renderTemplate = () => {
-    switch ((resume.template || 'software').toLowerCase()) {
-      case 'software':
-        return <SoftwareTemplate data={resume} />;
-      case 'management':
-        return <ManagementTemplate data={resume} />;
-      case 'creative':
-        return <CreativeTemplate data={resume} />;
-      case 'academic':
-        return <AcademicTemplate data={resume} />;
-      case 'sales':
-        return <SalesTemplate data={resume} />;
-      case 'healthcare':
-        return <HealthcareTemplate data={resume} />;
-      default:
-        return <BaseTemplate data={resume} enabledSections={orderedSections} />;
-    }
-  };
-
-  
-
-  const handleExportDOCX = async () => {
-    if (isExporting) return;
-    
-    setIsExporting(true);
-    try {
-      const filename = `${resume.personalInfo?.name || 'resume'}.docx`
-        .replace(/[^a-zA-Z0-9._-]/g, '_')
-        .slice(0, 255);
-      
-      await exportToDOCX(resume, orderedSections, filename);
-    } catch (error) {
-      console.error('DOCX export failed:', error);
-      alert(`Failed to export DOCX: ${error instanceof Error ? error.message : 'Please try again.'}`);
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleExportPDF = async () => {
-    if (isExporting) return;
-    setIsExporting(true);
-    try {
-      // Build a base64-encoded resume JSON and point the Puppeteer worker at the public preview page.
-      const json = JSON.stringify(resume);
-      // base64 unicode-safe
-      const base64 = btoa(unescape(encodeURIComponent(json)));
-      const url = `${window.location.origin}/public-preview?data=${encodeURIComponent(base64)}`;
-
-      // If a Docker worker URL is configured in env, call it directly.
-      // Otherwise fall back to the in-app API route which uses local Puppeteer.
-      const workerBase = process.env.NEXT_PUBLIC_PDF_WORKER_URL || null;
-      const endpoint = workerBase ? `${workerBase.replace(/\/$/, '')}/generate-pdf` : '/api/export-pdf';
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.error || `PDF export failed (${res.status})`);
-      }
-      const blob = await res.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = `${resume.personalInfo?.name || 'resume'}.pdf`;
-      a.click();
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error('PDF export failed:', error);
-      alert(`Failed to export PDF: ${error instanceof Error ? error.message : 'Please try again.'}`);
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   return (
-    <div className="flex-1 flex flex-col bg-gray-100 overflow-hidden">
-      {/* Header with controls */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-lg font-semibold text-gray-800">Preview</h2>
-            
-            {/* Zoom controls */}
-            <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1">
-              <button
-                onClick={() => setScale(Math.max(0.5, scale - 0.1))}
-                className="p-1 hover:bg-gray-200 rounded text-gray-600"
-              >
-                ➖
-              </button>
-              <span className="text-sm text-gray-600 w-12 text-center">
-                {Math.round(scale * 100)}%
-              </span>
-              <button
-                onClick={() => setScale(Math.min(1.5, scale + 0.1))}
-                className="p-1 hover:bg-gray-200 rounded text-gray-600"
-              >
-                ➕
-              </button>
-              <button
-                onClick={() => setScale(0.75)}
-                className="text-xs text-blue-600 hover:text-blue-700 ml-1"
-              >
-                Reset
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleExportPDF}
-              disabled={isExporting}
-              className="px-4 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
-            >
-              {isExporting ? <span className="animate-spin">⏳</span> : '📄'} PDF
-            </button>
-            <button
-              onClick={handleExportDOCX}
-              disabled={isExporting}
-              className="px-4 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
-            >
-              {isExporting ? (
-                <span className="animate-spin">⏳</span>
-              ) : (
-                '📝'
-              )}
-              DOCX
-            </button>
-          </div>
+    <div className="flex flex-col bg-gray-100">
+      <div className="flex items-center justify-center gap-2 mb-3">
+        <div className="flex items-center gap-1 bg-white rounded-lg px-2 py-1 border border-gray-200">
+          <button
+            onClick={() => setUserScale(Math.max(0.3, +(scale - 0.1).toFixed(2)))}
+            className="px-2 py-0.5 hover:bg-gray-100 rounded text-gray-600"
+            aria-label="Zoom out"
+          >
+            −
+          </button>
+          <span className="text-xs text-gray-600 w-10 text-center">{Math.round(scale * 100)}%</span>
+          <button
+            onClick={() => setUserScale(Math.min(1.5, +(scale + 0.1).toFixed(2)))}
+            className="px-2 py-0.5 hover:bg-gray-100 rounded text-gray-600"
+            aria-label="Zoom in"
+          >
+            +
+          </button>
+          <button
+            onClick={() => setUserScale(null)}
+            className={`text-xs ml-1 ${userScale === null ? 'text-gray-400' : 'text-blue-600 hover:text-blue-700'}`}
+            disabled={userScale === null}
+          >
+            Fit
+          </button>
         </div>
       </div>
 
-      {/* Main content area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Preview panel - Full width */}
-        <div className="flex-1 overflow-auto p-6">
-          <div className="flex justify-center">
-            <div
-              style={{
-                transform: `scale(${scale})`,
-                transformOrigin: 'top center',
-                transition: 'transform 0.2s ease',
-              }}
-            >
-              <div
-                ref={previewRef}
-                data-export-element="true"
-                className="bg-white shadow-xl rounded-lg overflow-hidden"
-                style={{
-                  width: '210mm',
-                  minHeight: '297mm',
-                  padding: '20mm',
-                }}
-              >
-                {renderTemplate()}
-              </div>
-            </div>
+      <div ref={containerRef} className="overflow-auto">
+        {/* `zoom` (unlike transform) also shrinks the layout box, so no empty space is left below. */}
+        <div className="mx-auto shadow-xl w-fit" style={{ zoom: scale }}>
+          <div className="resume-paper">
+            <ResumeDocument data={renderData} />
           </div>
         </div>
-      </div>
-
-      {/* Footer with page info */}
-      <div className="bg-white border-t border-gray-200 px-4 py-2 text-center">
-        <span className="text-sm text-gray-500">
-          A4 Format (210mm × 297mm) • {orderedSections.length} sections • 
-          Template: {resume.template.charAt(0).toUpperCase() + resume.template.slice(1)}
-        </span>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import React from "react";
 import { ResumeData } from "../types/resume";
+import { formatDateRange } from "../utils/resumeRender";
 
 
 const CreativeTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
@@ -55,12 +56,12 @@ const CreativeTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
               <h2 className="text-lg font-black uppercase tracking-wider mb-3 text-gray-900">Experience</h2>
               <div className="space-y-4 py-2 border-l-2 border-orange-300 pl-4">
                 {data.experience.map(exp => (
-                  <div key={exp.id} className="relative -ml-6">
-                    <div className="w-4 h-4 bg-orange-400 rounded-full border-2 border-white absolute mt-1" />
+                  <div key={exp.id} className="relative">
+                    <div className="w-4 h-4 bg-orange-400 rounded-full border-2 border-white absolute -left-[25px] top-0.5" />
                     <div>
                       <p className="font-bold text-sm">{exp.position}</p>
                       <p className="text-xs text-gray-600">{exp.company} • {exp.location}</p>
-                      <p className="text-xs text-gray-500 font-semibold">{exp.startDate} – {exp.endDate}</p>
+                      <p className="text-xs text-gray-500 font-semibold">{formatDateRange(exp.startDate, exp.endDate, exp.current)}</p>
                       <p className="text-xs mt-1">{exp.description}</p>
                       {exp.achievements && exp.achievements.length > 0 && (
                         <ul className="text-xs mt-1 space-y-0.5">
@@ -118,7 +119,7 @@ const CreativeTemplate: React.FC<{ data: ResumeData }> = ({ data }) => {
                     <div key={edu.id} className="text-xs">
                       <p className="font-bold">{edu.degree}</p>
                       <p className="text-gray-600">{edu.institution}</p>
-                      <p className="text-gray-500">{edu.startDate} - {edu.endDate}</p>
+                      <p className="text-gray-500">{formatDateRange(edu.startDate, edu.endDate)}</p>
                     </div>
                   ))}
                 </div>
