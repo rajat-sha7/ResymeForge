@@ -1,21 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Toast from './components/Toast';
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { siteFontVars } from './fonts';
 
 export const metadata: Metadata = {
-  title: "Resume Toolbox - Build ATS-Friendly Resumes",
-  description: "Create professional, ATS-optimized resumes that get past automated screening systems and land you more interviews at top MNCs.",
+  title: "ResumeForge – Build an ATS-friendly resume",
+  description: "Six templates built for different fields, and a checker that flags what applicant tracking software will trip on as you write. Free, no account needed.",
 };
 
 export default function RootLayout({
@@ -24,10 +14,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" className={siteFontVars}>
+      <body className="antialiased">
         {children}
         <Toast />
       </body>

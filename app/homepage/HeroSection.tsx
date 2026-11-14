@@ -1,130 +1,80 @@
-"use client";
-import React, { useRef, useEffect } from "react";
-import Link from "next/link";
-import { gsap } from "gsap";
-import HeroScene from "./HeroScene";
+import React from "react";
+import Reveal from "./Reveal";
+import ScaledResume from "./ScaledResume";
+import AtsPanel from "./AtsPanel";
+import { sampleResume } from "./sampleResume";
+import { PrimaryButton, TextLink, CursorTag } from "./ui";
 
-interface HeroSectionProps {
-  mouseX: number;
-  mouseY: number;
-}
+const sections = ["Contact", "Summary", "Experience", "Skills", "Projects", "Education"];
 
-const HeroSection: React.FC<HeroSectionProps> = ({ mouseX, mouseY }) => {
-  const heroRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.from(".hero-title span", {
-        y: 100,
-        opacity: 0,
-        duration: 1,
-        stagger: 0.1,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: heroRef.current,
-          start: "top 80%",
-        },
-      });
-      gsap.from(".hero-subtitle", {
-        y: 50,
-        opacity: 0,
-        duration: 1,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: heroRef.current,
-          start: "top 75%",
-        },
-      });
-      gsap.fromTo(
-        ".hero-cta",
-        { y: 30, opacity: 0 },
-        { 
-          y: 0, 
-          opacity: 1, 
-          duration: 0.8, 
-          stagger: 0.2, 
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: heroRef.current,
-            start: "top 70%",
-          }
-        }
-      );
-      gsap.from(".hero-stats", {
-        y: 40,
-        opacity: 0,
-        duration: 0.8,
-        stagger: 0.15,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: heroRef.current,
-          start: "top 65%",
-        },
-      });
-
-      gsap.from(".scroll-indicator", {
-        y: 20,
-        opacity: 0,
-        duration: 0.6,
-        ease: "power2.out",
-        scrollTrigger: {
-          trigger: heroRef.current,
-          start: "top 60%",
-        },
-      });
-    }, heroRef);
-    return () => ctx.revert();
-  }, []);
-
-  return (
-    <section ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center bg-linear-to-br from-gray-900 via-black to-gray-900 overflow-hidden">
-      <HeroScene mouseX={mouseX} mouseY={mouseY} />
-      <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-28 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center w-full">
-        <div ref={textRef}>
-          <h1 className="hero-title text-3xl xs:text-4xl sm:text-5xl md:text-7xl font-bold text-white leading-tight mb-6 overflow-hidden">
-            <span className="inline-block">Build</span>{" "}
-            <span className="inline-block text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-purple-500">ATS-Friendly</span>{" "}
-            <span className="inline-block">Resumes</span>
-          </h1>
-          <p className="hero-subtitle text-base sm:text-lg md:text-xl text-gray-400 mb-8 max-w-lg">
-            Create professional, ATS-optimized resumes that get past automated screening systems and land you more interviews at top MNCs.
-          </p>
-          <div className="flex flex-row gap-4">
-            <Link href="/builder" className="hero-cta px-6 sm:px-8 py-4 bg-linear-to-r from-blue-500 to-purple-600 text-white rounded-full font-semibold text-base sm:text-lg hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 hover:scale-105 flex items-center gap-2 border-2 border-blue-500">
-              <span>Start Building</span>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </Link>
-            <Link href="#templates" className="hero-cta px-6 sm:px-8 py-4 border-2 border-gray-600 text-white rounded-full font-semibold text-base sm:text-lg hover:border-blue-400 hover:text-blue-400 transition-all duration-300 bg-black/40">
-              View Templates
-            </Link>
-          </div>
-          <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row gap-6 sm:gap-8 hidden sm:flex">
-            <div className="hero-stats">
-              <div className="text-3xl font-bold text-white">95%</div>
-              <div className="text-sm text-gray-500">ATS Pass Rate</div>
-            </div>
-            <div className="hero-stats">
-              <div className="text-3xl font-bold text-white">10K+</div>
-              <div className="text-sm text-gray-500">Resumes Created</div>
-            </div>
-            <div className="hero-stats">
-              <div className="text-3xl font-bold text-white">6</div>
-              <div className="text-sm text-gray-500">Templates</div>
-            </div>
-          </div>
+const HeroSection: React.FC = () => (
+  <section className="relative overflow-hidden bg-[#f5f4ed] pt-20 sm:pt-32">
+    <div className="mx-auto max-w-[1328px] px-4 sm:px-8 text-center">
+      <Reveal>
+        <h1 className="home-serif mx-auto max-w-[1100px] text-[52px] leading-[0.98] sm:text-[84px] lg:text-[104px] tracking-[-0.04em] text-[#151b26]">
+          Write a resume that makes it to a person
+        </h1>
+        <p className="mx-auto mt-7 max-w-[760px] text-balance text-[19px] sm:text-[24px] leading-[1.3] tracking-[-0.02em] text-[#606060]">
+          Six templates built for different fields, and a checker that flags what applicant tracking software will
+          trip on as you write.
+        </p>
+      </Reveal>
+      <Reveal delay={100}>
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-5">
+          <PrimaryButton href="/builder">Build my resume</PrimaryButton>
+          <TextLink href="#templates">See the templates</TextLink>
         </div>
+      </Reveal>
+    </div>
 
+    {/* Product window */}
+    <Reveal delay={200} className="relative mx-auto mt-16 sm:mt-24 max-w-[1120px] px-4 sm:px-8">
+      <div className="rounded-t-[14px] border border-b-0 border-[#d9d4c7] bg-[#fbfaf6] p-2 sm:p-3 pb-0 sm:pb-0 shadow-[0_-20px_60px_-30px_rgba(21,27,38,0.25)]">
+        <div className="flex items-center gap-2 px-2 pb-3 pt-1">
+          <span className="h-3 w-3 rounded-full bg-[#d9d4c7]" />
+          <span className="h-3 w-3 rounded-full bg-[#d9d4c7]" />
+          <span className="h-3 w-3 rounded-full bg-[#d9d4c7]" />
+          <span className="home-mono ml-4 hidden sm:inline text-[12px] text-[#8a877f]">Alex Morgan — Software template</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-[180px_1fr_260px] overflow-hidden rounded-t-[8px] border border-b-0 border-[#e6e2d8] bg-white text-left">
+          {/* Section list */}
+          <aside className="hidden md:block border-r border-[#efece4] p-5">
+            <p className="home-mono text-[11px] uppercase tracking-[0.06em] text-[#606060]">Sections</p>
+            <ul className="mt-3 space-y-1">
+              {sections.map((s, i) => (
+                <li
+                  key={s}
+                  className={`flex items-center justify-between rounded-md px-2.5 py-2 text-[14px] ${
+                    i === 2 ? "bg-[#f5f4ed] font-medium text-[#151b26]" : "text-[#606060]"
+                  }`}
+                >
+                  {s}
+                  <svg width="10" height="14" viewBox="0 0 10 14" fill="#c9c4b8" aria-hidden>
+                    <circle cx="2.5" cy="3" r="1.2" /><circle cx="7.5" cy="3" r="1.2" />
+                    <circle cx="2.5" cy="7" r="1.2" /><circle cx="7.5" cy="7" r="1.2" />
+                    <circle cx="2.5" cy="11" r="1.2" /><circle cx="7.5" cy="11" r="1.2" />
+                  </svg>
+                </li>
+              ))}
+            </ul>
+          </aside>
+
+          {/* Live page */}
+          <div className="relative bg-[#efede6] px-5 pt-6 sm:px-12 sm:pt-10">
+            <div className="mx-auto max-w-[460px] shadow-[0_8px_30px_rgba(21,27,38,0.10)]">
+              <ScaledResume template="software" data={sampleResume} crop={0.62} />
+            </div>
+            <CursorTag label="You" color="#151b26" text="#fff" className="home-drift absolute left-[66%] top-[52%]" />
+          </div>
+
+          {/* ATS panel */}
+          <aside className="hidden md:block border-l border-[#efece4] p-6">
+            <AtsPanel />
+          </aside>
+        </div>
       </div>
-      <div className="scroll-indicator absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
-        <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-        </svg>
-      </div>
-    </section>
-  );
-};
+    </Reveal>
+  </section>
+);
 
 export default HeroSection;

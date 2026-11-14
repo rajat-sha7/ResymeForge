@@ -1,290 +1,144 @@
-'use client';
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getInsightBySlug, insights } from "../data";
+import { withHeadingIds } from "../toc";
+import Header from "../../homepage/Header";
+import Footer from "../../homepage/Footer";
+import { CTABand, Eyebrow } from "../../homepage/ui";
+import ShareButton from "./ShareButton";
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { getInsightBySlug, insights } from '../data';
-import OptimizedLogo from '../../homepage/OptimizedLogo';
-import {
-  HiArrowLeft,
-  HiClock,
-  HiUser,
-  HiTag,
-  HiArrowRight,
-  HiCalendarDays,
-  HiBriefcase,
-  HiShare,
-  HiCheck,
-} from 'react-icons/hi2';
-import gsap from 'gsap';
+type Params = { params: Promise<{ slug: string }> };
 
-export default function InsightPost() {
-  const params  = useParams<{ slug: string }>();
-  const post    = getInsightBySlug(params.slug);
-  const [copied, setCopied] = useState(false);
-  const [mounted, setMounted] = useState(false);
+export function generateStaticParams() {
+  return insights.map((p) => ({ slug: p.slug }));
+}
 
-  useEffect(() => { setMounted(true); }, []);
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const post = getInsightBySlug((await params).slug);
+  return post ? { title: `${post.title} – ResumeForge`, description: post.excerpt } : { title: "Article not found – ResumeForge" };
+}
 
-  useEffect(() => {
-    if (!mounted || !post) return;
-    gsap.fromTo('.post-hero',  { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' });
-    gsap.fromTo('.post-body',  { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', delay: 0.25 });
-    gsap.fromTo('.post-aside', { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.6, ease: 'power2.out', delay: 0.4 });
-  }, [mounted, post]);
+const formatDate = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
+export default async function InsightPost({ params }: Params) {
+  const post = getInsightBySlug((await params).slug);
+  if (!post) notFound();
 
-  if (!post) {
-    return (
-      <div className="min-h-screen bg-[#05060f] flex items-center justify-center text-white">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-3">Article not found</h1>
-          <p className="text-gray-400 mb-6">This insight doesn't exist or may have been removed.</p>
-          <Link href="/insights" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 border border-white/10 hover:bg-white/12 transition-colors text-sm">
-            <HiArrowLeft className="w-4 h-4" /> Back to Insights
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // Related posts: same category, not current
+  const { html, headings } = withHeadingIds(post.content);
   const related = insights
-    .filter(p => p.slug !== post.slug && (p.category === post.category || p.tags.some(t => post.tags.includes(t))))
-    .slice(0, 2);
-
-  const formattedDate = new Date(post.date).toLocaleDateString('en-US', {
-    month: 'long', day: 'numeric', year: 'numeric',
-  });
+    .filter((p) => p.slug !== post.slug && (p.category === post.category || p.tags.some((t) => post.tags.includes(t))))
+    .concat(insights.filter((p) => p.slug !== post.slug))
+    .filter((p, i, arr) => arr.findIndex((x) => x.slug === p.slug) === i)
+    .slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-[#05060f] text-white">
+    <main className="home-sans min-h-screen bg-[#f5f4ed] text-[#151b26] overflow-x-clip">
+      <Header />
 
-      {/* ── Navbar ── */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#05060f]/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          <Link href="/" className="hover:opacity-80 transition-opacity">
-            <OptimizedLogo />
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-gray-400">
-            <Link href="/" className="hover:text-white transition-colors">Home</Link>
-            <Link href="/toolbox" className="hover:text-white transition-colors">Toolbox</Link>
-            <Link href="/insights" className="text-white font-medium">Insights</Link>
-            <Link
-              href="/builder"
-              className="px-4 py-1.5 rounded-full border border-white/20 text-white hover:bg-white/10 transition-colors"
-            >
-              Build Resume
+      {/* Title */}
+      <header className="pt-12 sm:pt-20 pb-12 sm:pb-16">
+        <div className="mx-auto max-w-[1328px] px-4 sm:px-8">
+          <nav aria-label="Breadcrumb" className="home-mono text-[13px] uppercase tracking-[0.04em] text-[#606060]">
+            <Link href="/insights" className="hover:text-[#151b26] underline-offset-4 hover:underline">
+              Insights
             </Link>
+            <span className="mx-2">/</span>
+            <span className="text-[#151b26]">{post.category}</span>
           </nav>
+          <h1 className="home-serif mt-6 max-w-[1040px] text-[44px] sm:text-[72px] leading-[1.02] tracking-[-0.035em]">{post.title}</h1>
+          <p className="mt-7 max-w-[760px] text-[19px] sm:text-[22px] leading-[1.45] tracking-[-0.01em] text-[#606060]">{post.excerpt}</p>
+          <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4 border-t border-[#e3dacc] pt-6">
+            <p className="home-mono text-[13px] text-[#606060]">
+              {formatDate(post.date)} · {post.readTime} min read
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {post.tags.map((t) => (
+                <span key={t} className="rounded-full bg-[#e3dacc] px-3 py-1 text-[13px] text-[#55524c]">
+                  {t}
+                </span>
+              ))}
+            </div>
+            <div className="sm:ml-auto">
+              <ShareButton />
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* ── Hero Banner ── */}
-      <div className={`relative overflow-hidden bg-linear-to-br ${post.coverColor} py-16 md:py-24`}>
-        <div className="absolute inset-0 bg-[#05060f]/70" />
-        {/* glow */}
-        <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-96 h-48 bg-white/5 blur-[80px] rounded-full pointer-events-none" />
-        <div className="relative max-w-4xl mx-auto px-6 post-hero">
-          {/* Breadcrumb */}
-          <Link
-            href="/insights"
-            className="inline-flex items-center gap-2 text-gray-300 hover:text-white text-sm mb-6 transition-colors group"
-          >
-            <HiArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            All Insights
-          </Link>
+      {/* Body */}
+      <section className="bg-white py-16 sm:py-24">
+        <div className="mx-auto grid max-w-[1328px] grid-cols-1 gap-16 px-4 sm:px-8 lg:grid-cols-[260px_minmax(0,680px)] lg:justify-between xl:grid-cols-[260px_minmax(0,720px)_260px]">
+          {/* Contents */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-28">
+              <Eyebrow>Contents</Eyebrow>
+              <ol className="mt-5 border-l border-[#e3dacc]">
+                {headings.map((h) => (
+                  <li key={h.id}>
+                    <a
+                      href={`#${h.id}`}
+                      className="-ml-px block border-l border-transparent py-2 pl-4 text-[15px] leading-snug text-[#606060] transition-colors hover:border-[#c1441a] hover:text-[#151b26]"
+                    >
+                      {h.text}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </aside>
 
-          {/* Category + tags */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <span className={`px-3 py-1 rounded-full bg-linear-to-r ${post.coverColor} text-white text-xs font-semibold shadow-md`}>
-              {post.category}
-            </span>
-            {post.tags.map(tag => (
-              <span key={tag} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/15 text-gray-300 text-xs">
-                <HiTag className="w-3 h-3" /> {tag}
-              </span>
-            ))}
-          </div>
+          <article className="prose-home min-w-0" dangerouslySetInnerHTML={{ __html: html }} />
 
-          <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-5">
-            {post.title}
-          </h1>
-          <p className="text-gray-300 text-base md:text-lg leading-relaxed mb-8 max-w-2xl">
-            {post.excerpt}
-          </p>
-
-          {/* Author row */}
-          <div className="flex flex-wrap items-center gap-6 text-sm text-gray-400">
-            <span className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-full bg-linear-to-br ${post.coverColor} flex items-center justify-center text-xs font-bold text-white shadow`}>
-                {post.author.charAt(0)}
-              </div>
-              <span>
-                <span className="text-white font-medium">{post.author}</span>
-                <span className="block text-xs text-gray-500">{post.authorRole}</span>
-              </span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <HiCalendarDays className="w-4 h-4" /> {formattedDate}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <HiClock className="w-4 h-4" /> {post.readTime} min read
-            </span>
-            {/* Share */}
-            <button
-              onClick={handleShare}
-              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/8 border border-white/15 hover:bg-white/15 transition-colors text-xs"
-            >
-              {copied ? <HiCheck className="w-3.5 h-3.5 text-green-400" /> : <HiShare className="w-3.5 h-3.5" />}
-              {copied ? 'Copied!' : 'Share'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Article + Sidebar ── */}
-      <div className="max-w-7xl mx-auto px-6 py-14 flex gap-12 items-start">
-
-        {/* ── Main article body ── */}
-        <article className="post-body flex-1 min-w-0 max-w-2xl">
-          <div
-            className="prose-dark"
-            dangerouslySetInnerHTML={{ __html: post.content }}
-          />
-
-          {/* ── CTA banner ── */}
-          <div className={`mt-12 rounded-2xl p-6 bg-linear-to-br ${post.coverColor} relative overflow-hidden`}>
-            <div className="absolute inset-0 bg-black/40" />
-            <div className="relative">
-              <HiBriefcase className="w-7 h-7 text-white mb-3" />
-              <h3 className="text-lg font-bold text-white mb-1">Apply what you've learned</h3>
-              <p className="text-white/70 text-sm mb-4">
-                Use ResumeForge's ATS Health Panel to check your resume score before you apply.
+          {/* Builder prompt */}
+          <aside className="hidden xl:block">
+            <div className="sticky top-28 rounded-[6px] bg-[#f5f4ed] p-6">
+              <p className="home-serif text-[26px] leading-[1.15] tracking-[-0.02em]">Check your own resume</p>
+              <p className="mt-3 text-[15px] leading-[1.5] text-[#606060]">
+                The ATS score in the builder flags the same issues this article covers.
               </p>
               <Link
                 href="/builder"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-gray-900 font-semibold text-sm hover:bg-gray-100 transition-colors shadow-lg"
+                className="mt-5 inline-flex h-11 items-center rounded-full bg-[#151b26] px-5 text-[15px] font-medium text-white transition-colors hover:bg-[#262e3d]"
               >
-                Build My Resume <HiArrowRight className="w-4 h-4" />
+                Open the builder
               </Link>
             </div>
-          </div>
+          </aside>
+        </div>
+      </section>
 
-          {/* ── Related Posts ── */}
-          {related.length > 0 && (
-            <div className="mt-14">
-              <h2 className="text-lg font-bold text-white mb-5">Related Articles</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {related.map(rel => (
-                  <Link
-                    key={rel.slug}
-                    href={`/insights/${rel.slug}`}
-                    className="group block rounded-xl border border-white/8 bg-white/3 hover:bg-white/6 hover:border-white/15 transition-all overflow-hidden"
-                  >
-                    <div className={`h-1.5 w-full bg-linear-to-r ${rel.coverColor}`} />
-                    <div className="p-4">
-                      <span className="text-xs text-gray-500 mb-2 block">{rel.category}</span>
-                      <h3 className="text-sm font-semibold text-white group-hover:text-blue-300 transition-colors leading-snug mb-3 line-clamp-2">
-                        {rel.title}
-                      </h3>
-                      <div className="flex items-center gap-3 text-xs text-gray-600">
-                        <span className="flex items-center gap-1"><HiClock className="w-3 h-3" /> {rel.readTime} min</span>
-                        <span className="flex items-center gap-1"><HiUser className="w-3 h-3" /> {rel.author.split(' ')[0]}</span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+      {/* Related */}
+      {related.length > 0 && (
+        <section className="py-20 sm:py-28">
+          <div className="mx-auto max-w-[1328px] px-4 sm:px-8">
+            <div className="flex items-end justify-between gap-6">
+              <h2 className="home-serif text-[36px] sm:text-[48px] leading-[1.05] tracking-[-0.03em]">Keep reading</h2>
+              <Link href="/insights" className="text-[16px] font-medium underline-offset-4 hover:underline">
+                All articles →
+              </Link>
             </div>
-          )}
-        </article>
-
-        {/* ── Sidebar ── */}
-        <aside className="post-aside hidden lg:block w-64 shrink-0 sticky top-24 space-y-6">
-
-          {/* Back link */}
-          <Link
-            href="/insights"
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors group"
-          >
-            <HiArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            All Insights
-          </Link>
-
-          {/* Article meta card */}
-          <div className="rounded-2xl border border-white/8 bg-white/3 p-5 space-y-4 text-sm">
-            <div className="flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-xl shrink-0 bg-linear-to-br ${post.coverColor} flex items-center justify-center text-sm font-bold text-white`}>
-                {post.author.charAt(0)}
-              </div>
-              <div>
-                <div className="font-medium text-white">{post.author}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{post.authorRole}</div>
-              </div>
-            </div>
-            <div className="space-y-2 text-xs text-gray-400 border-t border-white/8 pt-3">
-              <div className="flex items-center gap-2">
-                <HiCalendarDays className="w-3.5 h-3.5" /> {formattedDate}
-              </div>
-              <div className="flex items-center gap-2">
-                <HiClock className="w-3.5 h-3.5" /> {post.readTime} min read
-              </div>
-              <div className="flex items-center gap-2">
-                <HiTag className="w-3.5 h-3.5" /> {post.category}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1.5 border-t border-white/8 pt-3">
-              {post.tags.map(tag => (
-                <span key={tag} className="text-xs px-2 py-0.5 rounded-md bg-white/5 border border-white/8 text-gray-500">{tag}</span>
+            <div className="mt-10 grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
+              {related.map((p) => (
+                <Link
+                  key={p.slug}
+                  href={`/insights/${p.slug}`}
+                  className="group flex h-full flex-col rounded-[6px] bg-white p-7 sm:p-8 transition-shadow hover:shadow-[0_12px_32px_-16px_rgba(21,27,38,0.25)]"
+                >
+                  <p className="home-mono text-[12px] uppercase tracking-[0.04em] text-[#606060]">{p.category}</p>
+                  <h3 className="home-serif mt-6 text-[26px] leading-[1.15] tracking-[-0.02em] group-hover:underline decoration-1 underline-offset-4">
+                    {p.title}
+                  </h3>
+                  <p className="home-mono mt-auto pt-8 text-[12px] text-[#8a877f]">{p.readTime} min read</p>
+                </Link>
               ))}
             </div>
           </div>
+        </section>
+      )}
 
-          {/* All posts in same category */}
-          {insights.filter(p => p.category === post.category && p.slug !== post.slug).length > 0 && (
-            <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">More in {post.category}</p>
-              <ul className="space-y-3">
-                {insights
-                  .filter(p => p.category === post.category && p.slug !== post.slug)
-                  .map(p => (
-                    <li key={p.slug}>
-                      <Link
-                        href={`/insights/${p.slug}`}
-                        className="text-sm text-gray-400 hover:text-white transition-colors line-clamp-2 leading-snug"
-                      >
-                        {p.title}
-                      </Link>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          )}
-
-          {/* CTA */}
-          <Link
-            href="/builder"
-            className={`block rounded-2xl p-5 bg-linear-to-br ${post.coverColor} relative overflow-hidden group hover:scale-[1.02] transition-transform`}
-          >
-            <div className="absolute inset-0 bg-black/30" />
-            <div className="relative">
-              <p className="text-xs font-semibold text-white/80 mb-1">Ready to apply?</p>
-              <h3 className="text-base font-bold text-white mb-3">Build your resume</h3>
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-white/20 px-3 py-1.5 rounded-lg group-hover:bg-white/30 transition-colors">
-                Get started <HiArrowRight className="w-3 h-3" />
-              </span>
-            </div>
-          </Link>
-        </aside>
-      </div>
-
-    </div>
+      <CTABand title="Ready to rewrite yours?" body="Free, no account needed. Your draft is saved in your browser as you go." />
+      <Footer />
+    </main>
   );
 }

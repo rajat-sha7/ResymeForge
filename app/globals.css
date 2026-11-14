@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root {
+  /* SF Pro on Apple devices (system font), Inter elsewhere. */
+  --font-site: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", var(--font-fallback-sans), "Helvetica Neue", Arial, sans-serif;
   --background: #ffffff;
   --foreground: #000000;
 }
@@ -8,8 +10,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-site);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 /* Keep application in a light-only mode. Dark-mode related rules removed. */
@@ -17,7 +19,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-site);
 }
 
 /* Ensure form input text is visible against backgrounds */
@@ -155,4 +157,89 @@ select:not([disabled]) {
 
 .prose-dark a:hover {
   color: #93c5fd;
+}
+
+/* ── Homepage ── */
+html { scroll-behavior: smooth; }
+
+.home-sans {
+  font-family: var(--font-site);
+  -webkit-font-smoothing: antialiased;
+}
+/* Headings */
+.home-serif {
+  font-family: var(--font-site);
+  font-weight: 600;
+  /* SF Pro Display already tightens at large sizes; Apple uses roughly -0.015em for headlines. */
+  letter-spacing: -0.015em;
+}
+/* Small labels and metadata (dates, categories, step numbers) */
+.home-mono {
+  font-family: var(--font-site);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.home-mono.uppercase { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; }
+
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.reveal.is-visible { opacity: 1; transform: none; }
+
+.home-drift      { animation: home-drift 7s ease-in-out infinite; }
+.home-drift-slow { animation: home-drift 9s ease-in-out -3s infinite; }
+@keyframes home-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(8px, -10px); }
+}
+
+.home-caret { animation: home-caret 1.1s steps(1) infinite; }
+@keyframes home-caret { 50% { opacity: 0; } }
+
+.home-fade { animation: home-fade 0.45s ease-out; }
+@keyframes home-fade {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Article body on light pages */
+.prose-home { color: #3b3a36; font-size: 18px; line-height: 1.7; }
+.prose-home > :first-child { margin-top: 0; }
+.prose-home h2 {
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  color: #151b26;
+  margin: 3.2rem 0 1rem;
+  scroll-margin-top: 96px;
+}
+.prose-home h3 { font-size: 20px; font-weight: 600; color: #151b26; margin: 2.2rem 0 0.6rem; letter-spacing: -0.01em; }
+.prose-home p { margin: 0 0 1.25rem; }
+.prose-home ul, .prose-home ol { margin: 0 0 1.5rem; padding-left: 1.4rem; }
+.prose-home ul { list-style: disc; }
+.prose-home ol { list-style: decimal; }
+.prose-home li { margin-bottom: 0.5rem; padding-left: 0.25rem; }
+.prose-home li::marker { color: #c1441a; }
+.prose-home strong { color: #151b26; font-weight: 600; }
+.prose-home a { color: #151b26; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #c1441a; }
+.prose-home blockquote {
+  margin: 2rem 0;
+  padding: 0.25rem 0 0.25rem 1.5rem;
+  border-left: 2px solid #c1441a;
+  font-weight: 500;
+  font-size: 21px;
+  line-height: 1.4;
+  color: #151b26;
+}
+.prose-home table { width: 100%; border-collapse: collapse; margin: 0 0 1.75rem; font-size: 15px; }
+.prose-home th { text-align: left; font-weight: 500; color: #151b26; background: #f5f4ed; padding: 0.7rem 1rem; border-bottom: 1px solid #e3dacc; }
+.prose-home td { padding: 0.7rem 1rem; border-bottom: 1px solid #ece8de; vertical-align: top; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .home-drift, .home-drift-slow, .home-caret, .home-fade { animation: none; }
 }
