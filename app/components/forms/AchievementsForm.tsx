@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useResumeStore } from '../../store/resumeStore';
 import { Achievement } from '../../types/resume';
+import { isRequired, maxLength } from '../../utils/validation';
 
 interface AchievementsFormProps {
   data: Achievement[];
@@ -61,75 +62,100 @@ const AchievementsForm: React.FC<AchievementsFormProps> = ({ data }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold flex items-center gap-2">
-          <span>🏆</span> Achievements & Awards
-        </h2>
+    <div className="space-y-4">
+      {/* Subheader Bar */}
+      <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+        <div>
+          <p className="text-xs text-gray-500">
+            Honors, patents, published articles, keynote speeches, or standout recognitions.
+          </p>
+        </div>
         {!isAdding && (
           <button
+            type="button"
             onClick={() => setIsAdding(true)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-all"
           >
-            + Add Achievement
+            <span>+</span> Add Achievement
           </button>
         )}
       </div>
 
-      {achievements.map((ach, index) => {
-        const categoryInfo = getCategoryInfo(ach.category || 'other');
-        return (
-          <div key={ach.id} className="mb-4 p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
-            {editingIndex === index ? (
-              <AchievementEditor
-                achievement={ach}
-                onSave={(updated) => handleSave(index, updated)}
-                onCancel={() => setEditingIndex(null)}
-              />
-            ) : (
-              <div>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`px-2 py-0.5 text-xs rounded-full bg-${categoryInfo.color}-100 text-${categoryInfo.color}-700`}>
-                        {categoryInfo.label}
-                      </span>
-                      {ach.date && <span className="text-sm text-gray-500">{ach.date}</span>}
-                    </div>
-                    <h3 className="font-semibold text-lg">{ach.title || 'Achievement Title'}</h3>
-                    {ach.description && <p className="text-sm text-gray-700 mt-1">{ach.description}</p>}
-                    {ach.impact && (
-                      <p className="text-sm text-green-600 mt-1 font-medium">
-                        💪 Impact: {ach.impact}
-                      </p>
-                    )}
+      {/* Achievements Cards List */}
+      <div className="space-y-3">
+        {achievements.map((ach, index) => {
+          const categoryInfo = getCategoryInfo(ach.category || 'other');
+          return (
+            <div
+              key={ach.id}
+              className="border border-gray-200 hover:border-gray-300 rounded-xl bg-white transition-all shadow-2xs overflow-hidden"
+            >
+              {editingIndex === index ? (
+                <div className="p-5 bg-gray-50/50">
+                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
+                    <span className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                      ✏️ Edit Achievement
+                    </span>
                   </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => setEditingIndex(index)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      onClick={() => handleDelete(index)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded"
-                      title="Delete"
-                    >
-                      🗑️
-                    </button>
+                  <AchievementEditor
+                    achievement={ach}
+                    onSave={(updated) => handleSave(index, updated)}
+                    onCancel={() => setEditingIndex(null)}
+                  />
+                </div>
+              ) : (
+                <div className="p-4">
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                          {categoryInfo.label}
+                        </span>
+                        {ach.date && <span className="text-xs text-gray-500 font-medium">📅 {ach.date}</span>}
+                      </div>
+                      <h3 className="font-bold text-gray-900 text-base">{ach.title || 'Untitled Achievement'}</h3>
+                      {ach.description && <p className="text-xs text-gray-600 mt-1 leading-relaxed">{ach.description}</p>}
+                      {ach.impact && (
+                        <div className="mt-2 text-xs text-emerald-700 font-medium flex items-center gap-1 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md w-fit">
+                          <span>💪</span>
+                          <span>Impact: {ach.impact}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditingIndex(index)}
+                        className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                        title="Edit"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(index)}
+                        className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        title="Delete"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
+              )}
+            </div>
+          );
+        })}
+      </div>
 
+      {/* Add Achievement Drawer / Box */}
       {isAdding && (
-        <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
-          <h3 className="font-medium mb-3">Add New Achievement</h3>
+        <div className="p-5 border border-blue-200 rounded-xl bg-blue-50/20 shadow-xs">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-blue-100">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
+              ➕ Add New Achievement
+            </span>
+          </div>
           <AchievementEditor
             achievement={{}}
             onSave={handleAdd}
@@ -139,8 +165,22 @@ const AchievementsForm: React.FC<AchievementsFormProps> = ({ data }) => {
         </div>
       )}
 
+      {/* Empty State */}
       {achievements.length === 0 && !isAdding && (
-        <p className="text-gray-500 text-center py-8">No achievements added yet. Click "Add Achievement" to get started.</p>
+        <div className="text-center py-10 px-4 border border-dashed border-gray-300 rounded-xl bg-gray-50/50">
+          <div className="text-3xl mb-2">🏆</div>
+          <h4 className="text-sm font-semibold text-gray-800">No achievements recorded</h4>
+          <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+            Highlighting special honors, patents, or awards helps you stand out from other candidates.
+          </p>
+          <button
+            type="button"
+            onClick={() => setIsAdding(true)}
+            className="mt-3.5 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-all"
+          >
+            + Add Achievement
+          </button>
+        </div>
       )}
     </div>
   );
@@ -152,8 +192,6 @@ interface AchievementEditorProps {
   onCancel: () => void;
   isNew?: boolean;
 }
-
-import { isRequired, maxLength } from '../../utils/validation';
 
 const AchievementEditor: React.FC<AchievementEditorProps> = ({ achievement, onSave, onCancel, isNew }) => {
   const [formData, setFormData] = useState<Partial<Achievement>>({
@@ -197,86 +235,127 @@ const AchievementEditor: React.FC<AchievementEditorProps> = ({ achievement, onSa
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Title */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Achievement Title <span className="text-red-500">*</span>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
+            Achievement / Award Title <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
-            name="title"
-            placeholder="Employee of the Year Award"
-            value={formData.title || ''}
-            onChange={handleChange}
-            className={`w-full p-3 border rounded-lg focus:ring-2 ${errors.title ? 'border-red-400 bg-red-50/20' : 'border-gray-300 focus:ring-blue-500'
+          <div className="relative rounded-lg">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-sm">
+              🏆
+            </div>
+            <input
+              type="text"
+              name="title"
+              placeholder="e.g. Employee of the Year or First Place Hackathon"
+              value={formData.title || ''}
+              onChange={handleChange}
+              className={`w-full pl-10 pr-3.5 py-2.5 text-sm bg-white border rounded-lg transition-all focus:outline-none focus:ring-2 ${
+                errors.title
+                  ? 'border-red-400 focus:border-red-500 focus:ring-red-100 bg-red-50/15 text-red-900'
+                  : 'border-gray-300 hover:border-gray-400 focus:border-blue-600 focus:ring-blue-500/15'
               }`}
-          />
-          {errors.title && <p className="text-red-500 text-xs mt-1">⚠️ {errors.title}</p>}
+            />
+          </div>
+          {errors.title && <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1 font-medium">⚠️ {errors.title}</p>}
         </div>
+
+        {/* Category */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-          <select
-            name="category"
-            value={formData.category || 'other'}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            {ACHIEVEMENT_CATEGORIES.map((cat) => (
-              <option key={cat.value} value={cat.value}>{cat.label}</option>
-            ))}
-          </select>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
+            Category
+          </label>
+          <div className="relative rounded-lg">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-sm">
+              ⭐
+            </div>
+            <select
+              name="category"
+              value={formData.category || 'other'}
+              onChange={handleChange}
+              className="w-full pl-10 pr-3.5 py-2.5 text-sm bg-white border border-gray-300 hover:border-gray-400 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-600 text-gray-700"
+            >
+              {ACHIEVEMENT_CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        {/* Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-          <input
-            type="text"
-            name="date"
-            placeholder="2024"
-            value={formData.date || ''}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
+            Year / Date
+          </label>
+          <div className="relative rounded-lg">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-xs">
+              📅
+            </div>
+            <input
+              type="text"
+              name="date"
+              placeholder="e.g. 2024 or Nov 2023"
+              value={formData.date || ''}
+              onChange={handleChange}
+              className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-white border border-gray-300 hover:border-gray-400 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-600"
+            />
+          </div>
         </div>
       </div>
 
+      {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
+          Description &amp; Context
+        </label>
         <textarea
           name="description"
-          placeholder="Describe the achievement and context..."
+          placeholder="Describe the competitive criteria, scope, or background of this recognition..."
           value={formData.description || ''}
           onChange={handleChange}
           rows={2}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="w-full p-3 text-sm bg-white border border-gray-300 hover:border-gray-400 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-600"
         />
       </div>
 
+      {/* Impact */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Impact (quantifiable results)
-          <span className="text-gray-400 text-xs ml-2">e.g., "Saved $50K annually" or "Improved efficiency by 30%"</span>
-        </label>
-        <input
-          type="text"
-          name="impact"
-          placeholder="Led to 25% increase in team productivity"
-          value={formData.impact || ''}
-          onChange={handleChange}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
+            Quantifiable Impact (Optional)
+          </label>
+          <span className="text-[11px] text-gray-400">e.g. &quot;Selected top 1% out of 500 applicants&quot;</span>
+        </div>
+        <div className="relative rounded-lg">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-xs">
+            💪
+          </div>
+          <input
+            type="text"
+            name="impact"
+            placeholder="e.g. Led to $50K research grant or 30% speedup"
+            value={formData.impact || ''}
+            onChange={handleChange}
+            className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-white border border-gray-300 hover:border-gray-400 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-600"
+          />
+        </div>
       </div>
 
-      <div className="flex gap-2 pt-2">
+      {/* Action Buttons */}
+      <div className="flex items-center gap-2.5 pt-3 border-t border-gray-200">
         <button
+          type="button"
           onClick={handleSave}
-          className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white font-semibold text-xs rounded-lg hover:bg-blue-700 transition-all shadow-xs"
         >
-          {isNew ? 'Add Achievement' : 'Save Changes'}
+          <span>✓</span> {isNew ? 'Add Achievement' : 'Save Changes'}
         </button>
         <button
+          type="button"
           onClick={onCancel}
-          className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+          className="px-4 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium text-xs rounded-lg hover:bg-gray-50 transition-all"
         >
           Cancel
         </button>

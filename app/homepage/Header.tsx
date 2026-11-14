@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import OptimizedLogo from "./OptimizedLogo";
 
 const links = [
   { href: "/#how-it-works", label: "How it works" },
@@ -33,8 +34,8 @@ const Header: React.FC = () => {
 
       <header className="sticky top-0 z-50 border-b border-[#e3dacc] bg-[#f5f4ed]/90 backdrop-blur">
         <div className="mx-auto flex h-[72px] max-w-[1328px] items-center justify-between px-4 sm:px-8">
-          <Link href="/" className="home-serif text-[26px] tracking-[-0.02em] text-[#151b26]">
-            ResumeForge
+          <Link href="/" className="flex items-center hover:opacity-85 transition-opacity" title="ResumeForge Home">
+            <OptimizedLogo forgeColor="text-[#151b26]" size="md" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-9">

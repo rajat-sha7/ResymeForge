@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useResumeStore } from '../../store/resumeStore';
 import { Certification } from '../../types/resume';
+import { isRequired, isValidURL, maxLength } from '../../utils/validation';
 
 interface CertificationsFormProps {
   data: Certification[];
@@ -101,39 +102,52 @@ const CertificationsForm: React.FC<CertificationsFormProps> = ({ data }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold flex items-center gap-2">
-          <span>📜</span> Certifications
-        </h2>
-        <div className="flex gap-2">
+    <div className="space-y-4">
+      {/* Subheader Bar */}
+      <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+        <div>
+          <p className="text-xs text-gray-500">
+            Professional licenses, vendor credentials, and accredited course completions.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setShowSuggestions(!showSuggestions)}
-            className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg transition-all inline-flex items-center gap-1"
           >
-            💡 Quick Add
+            <span>💡</span> Quick Add Popular
           </button>
           {!isAdding && (
             <button
+              type="button"
               onClick={() => setIsAdding(true)}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-all"
             >
-              + Add Certification
+              <span>+</span> Add Certification
             </button>
           )}
         </div>
       </div>
 
+      {/* Quick Add Suggestions Drawer */}
       {showSuggestions && (
-        <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="flex gap-2 mb-3 flex-wrap">
+        <div className="p-4 bg-blue-50/70 rounded-xl border border-blue-200 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-900">
+              Popular Industry Credentials (Click to Add)
+            </span>
+          </div>
+
+          <div className="flex gap-1.5 flex-wrap">
             {Object.keys(POPULAR_CERTIFICATIONS).map((cat) => (
               <button
                 key={cat}
+                type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                   selectedCategory === cat
-                    ? 'bg-blue-500 text-white'
+                    ? 'bg-blue-600 text-white shadow-2xs'
                     : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
                 }`}
               >
@@ -141,73 +155,108 @@ const CertificationsForm: React.FC<CertificationsFormProps> = ({ data }) => {
               </button>
             ))}
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {POPULAR_CERTIFICATIONS[selectedCategory as keyof typeof POPULAR_CERTIFICATIONS].map((cert, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={() => handleQuickAdd(cert)}
-                className="p-3 bg-white border border-gray-200 rounded-lg text-left hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                className="p-3 bg-white border border-gray-200 rounded-lg text-left hover:border-blue-400 hover:shadow-xs transition-all group"
               >
-                <p className="font-medium text-sm">{cert.name}</p>
-                <p className="text-xs text-gray-500">{cert.issuer}</p>
+                <p className="font-semibold text-xs text-gray-900 group-hover:text-blue-700">{cert.name}</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">{cert.issuer}</p>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {certifications.map((cert, index) => (
-        <div key={cert.id} className="mb-4 p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
-          {editingIndex === index ? (
-            <CertificationEditor
-              certification={cert}
-              onSave={(updated) => handleSave(index, updated)}
-              onCancel={() => setEditingIndex(null)}
-            />
-          ) : (
-            <div>
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold text-lg">{cert.name || 'Certification Name'}</h3>
-                  <p className="text-gray-600">{cert.issuer || 'Issuer'}</p>
-                  <div className="flex gap-3 text-sm text-gray-500 mt-1">
-                    {cert.date && <span>Issued: {cert.date}</span>}
-                    {cert.expiryDate && <span>Expires: {cert.expiryDate}</span>}
-                  </div>
-                  {cert.credentialId && (
-                    <p className="text-xs text-gray-400 mt-1">ID: {cert.credentialId}</p>
-                  )}
+      {/* Certifications Cards List */}
+      <div className="space-y-3">
+        {certifications.map((cert, index) => (
+          <div
+            key={cert.id}
+            className="border border-gray-200 hover:border-gray-300 rounded-xl bg-white transition-all shadow-2xs overflow-hidden"
+          >
+            {editingIndex === index ? (
+              <div className="p-5 bg-gray-50/50">
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                    ✏️ Edit Certification
+                  </span>
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setEditingIndex(index)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                    title="Edit"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => handleDelete(index)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded"
-                    title="Delete"
-                  >
-                    🗑️
-                  </button>
-                </div>
+                <CertificationEditor
+                  certification={cert}
+                  onSave={(updated) => handleSave(index, updated)}
+                  onCancel={() => setEditingIndex(null)}
+                />
               </div>
-              {cert.link && (
-                <a href={cert.link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline mt-2 inline-block">
-                  🔗 View Credential
-                </a>
-              )}
-            </div>
-          )}
-        </div>
-      ))}
+            ) : (
+              <div className="p-4">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1">
+                    <h3 className="font-bold text-gray-900 text-base">
+                      📜 {cert.name || 'Untitled Certification'}
+                    </h3>
+                    <p className="text-xs font-medium text-gray-700 mt-0.5">🏛️ {cert.issuer || 'Issuer'}</p>
+                    <div className="flex gap-3 text-xs text-gray-500 mt-1.5 flex-wrap">
+                      {cert.date && <span>📅 Issued: {cert.date}</span>}
+                      {cert.expiryDate && <span>⌛ Expires: {cert.expiryDate}</span>}
+                      {cert.credentialId && (
+                        <span className="text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-mono">
+                          ID: {cert.credentialId}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingIndex(index)}
+                      className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(index)}
+                      className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      title="Delete"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+
+                {cert.link && (
+                  <div className="mt-2 pt-1 border-t border-gray-50">
+                    <a
+                      href={cert.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>🔗</span> View Official Credential
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Add Certification Drawer / Box */}
       {isAdding && (
-        <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
-          <h3 className="font-medium mb-3">Add New Certification</h3>
+        <div className="p-5 border border-blue-200 rounded-xl bg-blue-50/20 shadow-xs">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-blue-100">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
+              ➕ Add New Certification
+            </span>
+          </div>
           <CertificationEditor
             certification={{}}
             onSave={handleAdd}
@@ -217,8 +266,22 @@ const CertificationsForm: React.FC<CertificationsFormProps> = ({ data }) => {
         </div>
       )}
 
+      {/* Empty State */}
       {certifications.length === 0 && !isAdding && (
-        <p className="text-gray-500 text-center py-8">No certifications added yet. Click "Add Certification" or use "Quick Add" to get started.</p>
+        <div className="text-center py-10 px-4 border border-dashed border-gray-300 rounded-xl bg-gray-50/50">
+          <div className="text-3xl mb-2">📜</div>
+          <h4 className="text-sm font-semibold text-gray-800">No certifications added</h4>
+          <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+            Adding verified certifications (AWS, PMP, Google, Meta) improves recruiter credibility.
+          </p>
+          <button
+            type="button"
+            onClick={() => setIsAdding(true)}
+            className="mt-3.5 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-all"
+          >
+            + Add Certification
+          </button>
+        </div>
       )}
     </div>
   );
@@ -231,8 +294,6 @@ interface CertificationEditorProps {
   isNew?: boolean;
 }
 
-import { isRequired, isValidURL, maxLength } from '../../utils/validation';
-
 const CertificationEditor: React.FC<CertificationEditorProps> = ({ certification, onSave, onCancel, isNew }) => {
   const [formData, setFormData] = useState<Partial<Certification>>({
     name: '',
@@ -243,6 +304,8 @@ const CertificationEditor: React.FC<CertificationEditorProps> = ({ certification
     link: '',
     ...certification,
   });
+
+  const [errors, setErrors] = useState<{ [k: string]: string }>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -255,8 +318,6 @@ const CertificationEditor: React.FC<CertificationEditorProps> = ({ certification
       });
     }
   };
-
-  const [errors, setErrors] = useState<{ [k: string]: string }>({});
 
   const handleSave = () => {
     const newErrors: { [k: string]: string } = {};
@@ -280,102 +341,162 @@ const CertificationEditor: React.FC<CertificationEditorProps> = ({ certification
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
             Certification Name <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
-            name="name"
-            placeholder="AWS Certified Solutions Architect"
-            value={formData.name || ''}
-            onChange={handleChange}
-            className={`w-full p-3 border rounded-lg focus:ring-2 ${
-              errors.name ? 'border-red-400 bg-red-50/20' : 'border-gray-300 focus:ring-blue-500'
-            }`}
-          />
-          {errors.name && <p className="text-red-500 text-xs mt-1">⚠️ {errors.name}</p>}
+          <div className="relative rounded-lg">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-sm">
+              📜
+            </div>
+            <input
+              type="text"
+              name="name"
+              placeholder="e.g. AWS Certified Solutions Architect"
+              value={formData.name || ''}
+              onChange={handleChange}
+              className={`w-full pl-10 pr-3.5 py-2.5 text-sm bg-white border rounded-lg transition-all focus:outline-none focus:ring-2 ${
+                errors.name
+                  ? 'border-red-400 focus:border-red-500 focus:ring-red-100 bg-red-50/15 text-red-900'
+                  : 'border-gray-300 hover:border-gray-400 focus:border-blue-600 focus:ring-blue-500/15'
+              }`}
+            />
+          </div>
+          {errors.name && <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1 font-medium">⚠️ {errors.name}</p>}
         </div>
+
+        {/* Issuer */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
             Issuing Organization <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
-            name="issuer"
-            placeholder="Amazon Web Services"
-            value={formData.issuer || ''}
-            onChange={handleChange}
-            className={`w-full p-3 border rounded-lg focus:ring-2 ${
-              errors.issuer ? 'border-red-400 bg-red-50/20' : 'border-gray-300 focus:ring-blue-500'
-            }`}
-          />
-          {errors.issuer && <p className="text-red-500 text-xs mt-1">⚠️ {errors.issuer}</p>}
+          <div className="relative rounded-lg">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-sm">
+              🏛️
+            </div>
+            <input
+              type="text"
+              name="issuer"
+              placeholder="e.g. Amazon Web Services, Microsoft, PMI"
+              value={formData.issuer || ''}
+              onChange={handleChange}
+              className={`w-full pl-10 pr-3.5 py-2.5 text-sm bg-white border rounded-lg transition-all focus:outline-none focus:ring-2 ${
+                errors.issuer
+                  ? 'border-red-400 focus:border-red-500 focus:ring-red-100 bg-red-50/15 text-red-900'
+                  : 'border-gray-300 hover:border-gray-400 focus:border-blue-600 focus:ring-blue-500/15'
+              }`}
+            />
+          </div>
+          {errors.issuer && <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1 font-medium">⚠️ {errors.issuer}</p>}
         </div>
+
+        {/* Issue Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Issue Date</label>
-          <input
-            type="text"
-            name="date"
-            placeholder="Jan 2024"
-            value={formData.date || ''}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
+            Issue Date
+          </label>
+          <div className="relative rounded-lg">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-xs">
+              📅
+            </div>
+            <input
+              type="text"
+              name="date"
+              placeholder="e.g. Jan 2024"
+              value={formData.date || ''}
+              onChange={handleChange}
+              className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-white border border-gray-300 hover:border-gray-400 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-600"
+            />
+          </div>
         </div>
+
+        {/* Expiry Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date (if applicable)</label>
-          <input
-            type="text"
-            name="expiryDate"
-            placeholder="Jan 2027 or 'No Expiration'"
-            value={formData.expiryDate || ''}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
+            Expiry Date
+          </label>
+          <div className="relative rounded-lg">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-xs">
+              ⌛
+            </div>
+            <input
+              type="text"
+              name="expiryDate"
+              placeholder="e.g. Jan 2027 or 'No Expiration'"
+              value={formData.expiryDate || ''}
+              onChange={handleChange}
+              className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-white border border-gray-300 hover:border-gray-400 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/15 focus:border-blue-600"
+            />
+          </div>
         </div>
+
+        {/* Credential ID */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Credential ID</label>
-          <input
-            type="text"
-            name="credentialId"
-            placeholder="ABC123XYZ"
-            value={formData.credentialId || ''}
-            onChange={handleChange}
-            className={`w-full p-3 border rounded-lg focus:ring-2 ${
-              errors.credentialId ? 'border-red-400 bg-red-50/20' : 'border-gray-300 focus:ring-blue-500'
-            }`}
-          />
-          {errors.credentialId && <p className="text-red-500 text-xs mt-1">⚠️ {errors.credentialId}</p>}
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
+            Credential ID
+          </label>
+          <div className="relative rounded-lg">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-xs">
+              🔑
+            </div>
+            <input
+              type="text"
+              name="credentialId"
+              placeholder="e.g. AWS-123456"
+              value={formData.credentialId || ''}
+              onChange={handleChange}
+              className={`w-full pl-9 pr-3.5 py-2.5 text-sm bg-white border rounded-lg transition-all focus:outline-none focus:ring-2 ${
+                errors.credentialId
+                  ? 'border-red-400 focus:border-red-500 focus:ring-red-100 bg-red-50/15 text-red-900'
+                  : 'border-gray-300 hover:border-gray-400 focus:border-blue-600 focus:ring-blue-500/15'
+              }`}
+            />
+          </div>
+          {errors.credentialId && <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1 font-medium">⚠️ {errors.credentialId}</p>}
         </div>
+
+        {/* Credential URL */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Credential URL</label>
-          <input
-            type="url"
-            name="link"
-            placeholder="https://www.credly.com/badges/..."
-            value={formData.link || ''}
-            onChange={handleChange}
-            className={`w-full p-3 border rounded-lg focus:ring-2 ${
-              errors.link ? 'border-red-400 bg-red-50/20' : 'border-gray-300 focus:ring-blue-500'
-            }`}
-          />
-          {errors.link && <p className="text-red-500 text-xs mt-1">⚠️ {errors.link}</p>}
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
+            Credential URL
+          </label>
+          <div className="relative rounded-lg">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 text-xs">
+              🔗
+            </div>
+            <input
+              type="url"
+              name="link"
+              placeholder="https://credly.com/badges/..."
+              value={formData.link || ''}
+              onChange={handleChange}
+              className={`w-full pl-9 pr-3.5 py-2.5 text-sm bg-white border rounded-lg transition-all focus:outline-none focus:ring-2 ${
+                errors.link
+                  ? 'border-red-400 focus:border-red-500 focus:ring-red-100 bg-red-50/15 text-red-900'
+                  : 'border-gray-300 hover:border-gray-400 focus:border-blue-600 focus:ring-blue-500/15'
+              }`}
+            />
+          </div>
+          {errors.link && <p className="text-red-600 text-xs mt-1.5 flex items-center gap-1 font-medium">⚠️ {errors.link}</p>}
         </div>
       </div>
 
-      <div className="flex gap-2 pt-2">
+      {/* Action Buttons */}
+      <div className="flex items-center gap-2.5 pt-3 border-t border-gray-200">
         <button
+          type="button"
           onClick={handleSave}
-          className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white font-semibold text-xs rounded-lg hover:bg-blue-700 transition-all shadow-xs"
         >
-          {isNew ? 'Add Certification' : 'Save Changes'}
+          <span>✓</span> {isNew ? 'Add Certification' : 'Save Changes'}
         </button>
         <button
+          type="button"
           onClick={onCancel}
-          className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+          className="px-4 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium text-xs rounded-lg hover:bg-gray-50 transition-all"
         >
           Cancel
         </button>

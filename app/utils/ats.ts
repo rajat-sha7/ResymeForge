@@ -1,4 +1,8 @@
 import { ResumeData, ATSScore, ATSWarning, Skill } from '../types/resume';
+import {
+  SUMMARY_SUGGESTIONS_BY_TEMPLATE,
+  SKILL_SUGGESTIONS_BY_TEMPLATE,
+} from './fieldSuggestions';
 
 // ATS-safe fonts
 export const ATS_SAFE_FONTS = ['Arial', 'Calibri', 'Times New Roman', 'Georgia', 'Helvetica', 'Verdana'];
@@ -814,76 +818,49 @@ export const calculateATSScore = (resume: ResumeData, jobDescription: string = '
   };
 };
 
-export const getSummarySuggestions = (role: string): string[] => {
-  const suggestions: { [key: string]: string[] } = {
-    'software-engineer': [
-      'Software Engineer with X years of experience in building scalable applications using [technologies].',
-      'Results-focused developer specializing in [area] with a track record of delivering high-quality solutions.',
-      'Experienced in full software development lifecycle from requirements to deployment and maintenance.',
-    ],
-    'frontend-developer': [
-      'Frontend Developer with expertise in React, TypeScript, and modern web technologies.',
-      'UI/UX focused developer creating responsive, accessible, and performant web applications.',
-      'Passionate about building delightful user experiences with clean, maintainable code.',
-    ],
-    'backend-developer': [
-      'Backend Developer specializing in building robust APIs and microservices architecture.',
-      'Experienced in designing scalable database solutions and optimizing system performance.',
-      'Strong background in cloud infrastructure and DevOps practices.',
-    ],
-    'fullstack-developer': [
-      'Full Stack Developer proficient in both frontend and backend technologies.',
-      'End-to-end developer with experience in React, Node.js, and cloud services.',
-      'Versatile engineer capable of delivering complete solutions from database to UI.',
-    ],
-    'fresher': [
-      'Recent graduate with strong foundation in computer science fundamentals.',
-      'Eager learner with hands-on project experience in [technologies].',
-      'Entry-level developer passionate about writing clean, efficient code.',
-    ],
-    'product-manager': [
-      'Product Manager with experience in leading cross-functional teams.',
-      'Data-driven PM focused on user-centric product development.',
-      'Strategic thinker with a track record of successful product launches.',
-    ],
-  };
+export const getSummarySuggestions = (roleOrTemplate: string): string[] => {
+  const key = (roleOrTemplate || '').toLowerCase().trim();
+  if (SUMMARY_SUGGESTIONS_BY_TEMPLATE[key]) {
+    return SUMMARY_SUGGESTIONS_BY_TEMPLATE[key];
+  }
 
-  return suggestions[role] || suggestions['software-engineer'];
+  // Common aliases
+  if (key.includes('front')) return SUMMARY_SUGGESTIONS_BY_TEMPLATE.software;
+  if (key.includes('back')) return SUMMARY_SUGGESTIONS_BY_TEMPLATE.software;
+  if (key.includes('product') || key.includes('project') || key.includes('manager')) return SUMMARY_SUGGESTIONS_BY_TEMPLATE.management;
+  if (key.includes('sale') || key.includes('account')) return SUMMARY_SUGGESTIONS_BY_TEMPLATE.sales;
+  if (key.includes('health') || key.includes('nurse') || key.includes('medic')) return SUMMARY_SUGGESTIONS_BY_TEMPLATE.healthcare;
+  if (key.includes('design') || key.includes('creative') || key.includes('ui') || key.includes('ux')) return SUMMARY_SUGGESTIONS_BY_TEMPLATE.creative;
+  if (key.includes('academic') || key.includes('research') || key.includes('professor')) return SUMMARY_SUGGESTIONS_BY_TEMPLATE.academic;
+
+  return SUMMARY_SUGGESTIONS_BY_TEMPLATE.software;
 };
 
-export const getSkillSuggestions = (role: string): { technical: string[]; tools: string[]; soft: string[] } => {
-  const skills: { [key: string]: { technical: string[]; tools: string[]; soft: string[] } } = {
-    'software-engineer': {
-      technical: ['JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'SQL', 'REST APIs', 'Microservices'],
-      tools: ['Git', 'Docker', 'Kubernetes', 'AWS', 'Jenkins', 'Jira', 'VS Code'],
-      soft: ['Problem Solving', 'Team Collaboration', 'Communication', 'Time Management'],
-    },
-    'frontend-developer': {
-      technical: ['JavaScript', 'TypeScript', 'React', 'Vue.js', 'Angular', 'HTML5', 'CSS3', 'Responsive Design'],
-      tools: ['Git', 'Webpack', 'Vite', 'Figma', 'Chrome DevTools', 'npm', 'Jest'],
-      soft: ['Attention to Detail', 'Creativity', 'User Empathy', 'Communication'],
-    },
-    'backend-developer': {
-      technical: ['Node.js', 'Python', 'Java', 'Go', 'SQL', 'NoSQL', 'REST APIs', 'GraphQL'],
-      tools: ['Docker', 'Kubernetes', 'AWS', 'PostgreSQL', 'MongoDB', 'Redis', 'RabbitMQ'],
-      soft: ['Analytical Thinking', 'System Design', 'Documentation', 'Debugging'],
-    },
-    'fullstack-developer': {
-      technical: ['JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'SQL', 'REST APIs', 'GraphQL'],
-      tools: ['Git', 'Docker', 'AWS', 'PostgreSQL', 'MongoDB', 'CI/CD', 'Vercel'],
-      soft: ['Versatility', 'Problem Solving', 'Communication', 'Project Management'],
-    },
-    'fresher': {
-      technical: ['JavaScript', 'Python', 'Java', 'HTML', 'CSS', 'SQL', 'Data Structures', 'Algorithms'],
-      tools: ['Git', 'VS Code', 'GitHub', 'Postman', 'npm'],
-      soft: ['Quick Learner', 'Team Player', 'Adaptability', 'Eagerness to Learn'],
-    },
-    'product-manager': {
-      technical: ['Product Strategy', 'User Research', 'A/B Testing', 'Analytics', 'Roadmapping'],
-      tools: ['Jira', 'Confluence', 'Figma', 'Google Analytics', 'Mixpanel', 'Notion'],
-      soft: ['Leadership', 'Communication', 'Stakeholder Management', 'Decision Making'],
-    },
-  };
+export const getSkillSuggestions = (roleOrTemplate: string): { technical: string[]; tools: string[]; soft: string[] } => {
+  const key = (roleOrTemplate || '').toLowerCase().trim();
+  if (SKILL_SUGGESTIONS_BY_TEMPLATE[key]) {
+    return SKILL_SUGGESTIONS_BY_TEMPLATE[key];
+  }
 
-  return skills[role] || skills['software-engineer'];
+  // Common aliases
+  if (key.includes('front') || key.includes('back') || key.includes('full') || key.includes('engineer') || key.includes('dev')) {
+    return SKILL_SUGGESTIONS_BY_TEMPLATE.software;
+  }
+  if (key.includes('product') || key.includes('project') || key.includes('manager') || key.includes('lead')) {
+    return SKILL_SUGGESTIONS_BY_TEMPLATE.management;
+  }
+  if (key.includes('sale') || key.includes('account') || key.includes('sdr')) {
+    return SKILL_SUGGESTIONS_BY_TEMPLATE.sales;
+  }
+  if (key.includes('health') || key.includes('nurse') || key.includes('clinic') || key.includes('medic')) {
+    return SKILL_SUGGESTIONS_BY_TEMPLATE.healthcare;
+  }
+  if (key.includes('design') || key.includes('creative') || key.includes('ui') || key.includes('ux')) {
+    return SKILL_SUGGESTIONS_BY_TEMPLATE.creative;
+  }
+  if (key.includes('academic') || key.includes('research') || key.includes('teach')) {
+    return SKILL_SUGGESTIONS_BY_TEMPLATE.academic;
+  }
+
+  return SKILL_SUGGESTIONS_BY_TEMPLATE.software;
 };

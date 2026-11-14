@@ -27,6 +27,18 @@ const SECTION_ICONS: Record<string, string> = {
   custom: '📌',
 };
 
+const SECTION_DESCRIPTIONS: Record<string, string> = {
+  personalInfo: 'Basic contact details & online profiles',
+  professionalSummary: 'Executive summary & career hook',
+  skills: 'Technical proficiencies, frameworks & soft skills',
+  experience: 'Work history & quantifiable achievements',
+  projects: 'Key portfolio & technical applications',
+  education: 'Academic background, degrees & honors',
+  certifications: 'Industry credentials & accredited licenses',
+  achievements: 'Notable awards, publications & recognitions',
+  custom: 'Custom resume section & initiatives',
+};
+
 const Editor: React.FC = () => {
   const { currentResumeId, resumes, sectionOrder, enabledSections } = useResumeStore();
   const collapsedFromStore = useResumeStore((s) => s.collapsedSections);
@@ -214,16 +226,16 @@ const Editor: React.FC = () => {
             <div
               key={section}
               id={`editor-section-${section}`}
-              className={`editor-section bg-white rounded-lg border transition-colors ${
+              className={`editor-section bg-white rounded-xl border transition-all ${
                 hasErrors
                   ? 'border-red-300 shadow-xs'
-                  : 'border-gray-200 hover:border-gray-300'
+                  : 'border-gray-200 hover:border-gray-300 shadow-2xs'
               }`}
             >
               {/* Section Header */}
               <div
-                className={`px-4 py-3 flex items-center justify-between border-b border-gray-100 ${
-                  section === 'personalInfo' ? '' : 'cursor-pointer'
+                className={`px-5 py-3.5 flex items-center justify-between border-b border-gray-100 ${
+                  section === 'personalInfo' ? '' : 'cursor-pointer select-none'
                 }`}
                 onClick={() => {
                   if (section === 'personalInfo') return;
@@ -235,13 +247,13 @@ const Editor: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <div className="text-xl">{SECTION_ICONS[section] || '📌'}</div>
                   <div>
-                    <div className="text-sm font-medium text-gray-800">
+                    <div className="text-sm font-bold text-gray-800">
                       {section === 'personalInfo'
                         ? 'Personal Information'
                         : section.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {section === 'personalInfo' ? 'Basic contact details' : ''}
+                    <div className="text-xs text-gray-400">
+                      {SECTION_DESCRIPTIONS[section] || ''}
                     </div>
                   </div>
                 </div>
@@ -294,7 +306,7 @@ const Editor: React.FC = () => {
               </div>
 
               {/* Section Body (collapsible) */}
-              <div className={`${collapsed[section] ? 'hidden' : 'block'} p-4`}>
+              <div className={`${collapsed[section] ? 'hidden' : 'block'} p-5 sm:p-6 bg-white rounded-b-xl`}>
                 {renderSection(section)}
               </div>
             </div>

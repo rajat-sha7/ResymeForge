@@ -1,14 +1,14 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Header from '../homepage/Header';
+import Footer from '../homepage/Footer';
 import { useResumeStore } from '../store/resumeStore';
 import { TemplateType } from '../types/resume';
 import { calculateATSScore } from '../utils/ats';
 import gsap from 'gsap';
-import OptimizedLogo from '../homepage/OptimizedLogo';
-import { useSearchParams } from 'next/navigation';
 import {
   HiPlus,
   HiPencilSquare,
@@ -20,34 +20,76 @@ import {
   HiCheck,
   HiUser,
   HiEnvelope,
-  HiCalendarDays,
-  HiDocumentText,
-  HiTag,
-  HiFolderOpen,
-  HiShieldCheck,
-  HiChartBarSquare,
+  HiArrowRight,
+  HiClock,
+  HiOutlineDocumentText,
+  HiExclamationTriangle,
 } from 'react-icons/hi2';
 
-const TEMPLATE_INFO: Record<TemplateType, { icon: string; description: string; color: string; accent: string }> = {
-  software:   { icon: String.fromCodePoint(0x1F4BB), description: 'Ideal for developers, engineers, and tech professionals',  color: 'blue',   accent: 'bg-blue-500'   },
-  management: { icon: String.fromCodePoint(0x1F4CA), description: 'Perfect for managers, directors, and executives',           color: 'purple', accent: 'bg-purple-500' },
-  creative:   { icon: String.fromCodePoint(0x1F3A8), description: 'Great for designers, artists, and creative professionals',  color: 'pink',   accent: 'bg-pink-500'   },
-  academic:   { icon: String.fromCodePoint(0x1F393), description: 'Suited for researchers, professors, and academics',         color: 'green',  accent: 'bg-green-500'  },
-  sales:      { icon: String.fromCodePoint(0x1F4C8), description: 'Optimized for sales, business development, and marketing',  color: 'orange', accent: 'bg-orange-500' },
-  healthcare: { icon: String.fromCodePoint(0x2695, 0xFE0F), description: 'Tailored for medical and healthcare professionals', color: 'teal',   accent: 'bg-teal-500'   },
+interface TemplateMetadata {
+  name: string;
+  category: string;
+  body: string;
+  icon: string;
+  highlights: string[];
+}
+
+const TEMPLATE_INFO: Record<TemplateType, TemplateMetadata> = {
+  software: {
+    name: 'Software',
+    category: 'Engineering & Tech',
+    body: 'Skills grouped by type, with room for projects and links to GitHub and a portfolio.',
+    icon: '💻',
+    highlights: ['Technical Skills', 'Projects & Links', 'ATS Single-Column'],
+  },
+  management: {
+    name: 'Management',
+    category: 'Leadership & Strategy',
+    body: 'Opens with a summary and experience, with key projects called out before skills.',
+    icon: '📊',
+    highlights: ['Executive Summary', 'Key Metrics', 'Team Leadership'],
+  },
+  creative: {
+    name: 'Creative',
+    category: 'Design & Media',
+    body: 'A quieter layout that puts experience first and leaves space for portfolio work.',
+    icon: '🎨',
+    highlights: ['Experience-First', 'Portfolio Links', 'Visual Hierarchy'],
+  },
+  academic: {
+    name: 'Academic',
+    category: 'Research & Faculty',
+    body: 'Education comes first, followed by research, competencies, and awards.',
+    icon: '🎓',
+    highlights: ['Education-First', 'Publications', 'Conferences & Awards'],
+  },
+  sales: {
+    name: 'Sales',
+    category: 'Business Development',
+    body: 'Leads with experience and gives notable achievements a section of their own.',
+    icon: '📈',
+    highlights: ['Quota Attainment', 'Revenue Growth', 'Client Acquisition'],
+  },
+  healthcare: {
+    name: 'Healthcare',
+    category: 'Clinical & Medical',
+    body: 'Licenses and certifications sit at the top, where hiring teams look first.',
+    icon: '⚕️',
+    highlights: ['Licensing & Certs', 'Clinical Rotations', 'Patient Care'],
+  },
 };
 
-const TEMPLATE_BADGE: Record<string, string> = {
-  blue:   'bg-blue-100   text-blue-700',
-  purple: 'bg-purple-100 text-purple-700',
-  pink:   'bg-pink-100   text-pink-700',
-  green:  'bg-green-100  text-green-700',
-  orange: 'bg-orange-100 text-orange-700',
-  teal:   'bg-teal-100   text-teal-700',
-};
+const SAMPLE_SUGGESTIONS = [
+  'Full Stack Software Engineer',
+  'Senior Product Manager',
+  'Engineering Team Lead',
+  'Product Designer',
+  'Account Executive',
+];
 
 function ToolboxDashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     resumes,
     currentResumeId,
@@ -60,30 +102,40 @@ function ToolboxDashboard() {
     removeTag,
   } = useResumeStore();
 
-  const [mounted,           setMounted]           = useState(false);
-  const [searchQuery,       setSearchQuery]       = useState('');
-  const [filterTemplate,    setFilterTemplate]    = useState<TemplateType | 'all'>('all');
-  const [filterTag,         setFilterTag]         = useState<string | 'all'>('all');
-  const [showCreateModal,   setShowCreateModal]   = useState(false);
-  const [newResumeName,     setNewResumeName]     = useState('');
+  const [mounted, setMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterTemplate, setFilterTemplate] = useState<TemplateType | 'all'>('all');
+  const [filterTag, setFilterTag] = useState<string | 'all'>('all');
+  const [sortBy, setSortBy] = useState<'updated' | 'score' | 'title'>('updated');
+
+  // Modals
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newResumeName, setNewResumeName] = useState('');
   const [newResumeTemplate, setNewResumeTemplate] = useState<TemplateType>('software');
-  const [tagInput,          setTagInput]          = useState<Record<string, string>>({});
-  const [deleteTarget,      setDeleteTarget]      = useState<{ id: string; title: string } | null>(null);
-  const [renamingId,        setRenamingId]        = useState<string | null>(null);
-  const [renameValue,       setRenameValue]       = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+
+  // Inline renaming
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setMounted(true); }, []);
+  // Inline tag addition per card
+  const [addingTagToId, setAddingTagToId] = useState<string | null>(null);
+  const [newTagInput, setNewTagInput] = useState('');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (mounted) {
       gsap.fromTo(
         '.resume-card',
-        { opacity: 0, y: 24 },
-        { opacity: 1, y: 0, duration: 0.4, stagger: 0.07, ease: 'power2.out' },
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.35, stagger: 0.05, ease: 'power2.out' }
       );
     }
-  }, [mounted, filterTemplate, filterTag, searchQuery]);
+  }, [mounted, filterTemplate, filterTag, searchQuery, sortBy]);
 
   useEffect(() => {
     if (renamingId && renameInputRef.current) {
@@ -92,13 +144,12 @@ function ToolboxDashboard() {
     }
   }, [renamingId]);
 
-  const searchParams = useSearchParams();
   useEffect(() => {
     if (!mounted) return;
     const tpl = searchParams.get('template');
     if (tpl) {
       const key = tpl.toLowerCase();
-      if (['software','management','creative','academic','sales','healthcare'].includes(key)) {
+      if (['software', 'management', 'creative', 'academic', 'sales', 'healthcare'].includes(key)) {
         setFilterTemplate(key as TemplateType);
       }
     }
@@ -106,44 +157,55 @@ function ToolboxDashboard() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="home-sans min-h-screen bg-[#f5f4ed] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-500 text-sm">Loading your workspace...</p>
+          <div className="w-10 h-10 border-2 border-[#151b26] border-t-transparent rounded-full animate-spin" />
+          <p className="home-mono text-[13px] uppercase tracking-[0.04em] text-[#606060]">Loading your workspace...</p>
         </div>
       </div>
     );
   }
 
   const resumeList = Object.values(resumes);
-  const allTags    = Array.from(new Set(resumeList.flatMap(r => r.tags || [])));
+  const allTags = Array.from(new Set(resumeList.flatMap((r) => r.tags || [])));
+
+  // Calculate Average ATS score across resumes
+  const avgATS =
+    resumeList.length > 0
+      ? Math.round(
+          resumeList.reduce((acc, r) => acc + calculateATSScore(r).overall, 0) /
+            resumeList.length
+        )
+      : 0;
 
   const filteredResumes = resumeList
-    .filter(resume => {
-      const matchesSearch   = resume.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              resume.personalInfo?.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    .filter((resume) => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        resume.title.toLowerCase().includes(q) ||
+        (resume.personalInfo?.name && resume.personalInfo.name.toLowerCase().includes(q)) ||
+        (resume.personalInfo?.email && resume.personalInfo.email.toLowerCase().includes(q));
       const matchesTemplate = filterTemplate === 'all' || resume.template === filterTemplate;
-      const matchesTag      = filterTag === 'all' || (resume.tags || []).includes(filterTag);
+      const matchesTag = filterTag === 'all' || (resume.tags || []).includes(filterTag);
       return matchesSearch && matchesTemplate && matchesTag;
     })
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    .sort((a, b) => {
+      if (sortBy === 'score') {
+        return calculateATSScore(b).overall - calculateATSScore(a).overall;
+      }
+      if (sortBy === 'title') {
+        return a.title.localeCompare(b.title);
+      }
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
 
   const handleCreateResume = () => {
-    if (newResumeName.trim()) {
-      const id = createResume(newResumeName.trim(), newResumeTemplate);
-      setCurrentResumeId(id);
-      setNewResumeName('');
-      setShowCreateModal(false);
-      router.push('/builder');
-    }
-  };
-
-  const handleAddTag = (resumeId: string) => {
-    const tag = tagInput[resumeId]?.trim();
-    if (tag) {
-      addTag(resumeId, tag);
-      setTagInput({ ...tagInput, [resumeId]: '' });
-    }
+    const title = newResumeName.trim() || 'My Professional Resume';
+    const id = createResume(title, newResumeTemplate);
+    setCurrentResumeId(id);
+    setNewResumeName('');
+    setShowCreateModal(false);
+    router.push('/builder');
   };
 
   const handleEditResume = (id: string) => {
@@ -151,7 +213,11 @@ function ToolboxDashboard() {
     router.push('/builder');
   };
 
-  const handleStartRename  = (id: string, title: string) => { setRenamingId(id); setRenameValue(title); };
+  const handleStartRename = (id: string, title: string) => {
+    setRenamingId(id);
+    setRenameValue(title);
+  };
+
   const handleCommitRename = (id: string) => {
     const trimmed = renameValue.trim();
     if (trimmed) updateResume(id, { title: trimmed });
@@ -159,405 +225,754 @@ function ToolboxDashboard() {
   };
 
   const handleConfirmDelete = () => {
-    if (deleteTarget) { deleteResume(deleteTarget.id); setDeleteTarget(null); }
+    if (deleteTarget) {
+      deleteResume(deleteTarget.id);
+      setDeleteTarget(null);
+    }
   };
 
-  const getATSColor = (score: number) => {
-    if (score >= 80) return { text: 'text-emerald-600', bg: 'bg-emerald-500', ring: 'ring-emerald-200' };
-    if (score >= 60) return { text: 'text-amber-600',   bg: 'bg-amber-500',   ring: 'ring-amber-200'   };
-    return               { text: 'text-red-500',        bg: 'bg-red-500',     ring: 'ring-red-200'     };
+  const handleAddTagSubmit = (resumeId: string) => {
+    const tag = newTagInput.trim();
+    if (tag) {
+      addTag(resumeId, tag);
+      setNewTagInput('');
+      setAddingTagToId(null);
+    }
+  };
+
+  const getATSMetrics = (score: number) => {
+    if (score >= 80) {
+      return {
+        label: 'Ready for parsers',
+        textColor: 'text-[#156e3b]',
+        bgColor: 'bg-[#5fc788]',
+        badgeBg: 'bg-[#5fc788]/15 text-[#156e3b] border-[#5fc788]/40',
+      };
+    }
+    if (score >= 60) {
+      return {
+        label: 'Moderate match',
+        textColor: 'text-[#b45309]',
+        bgColor: 'bg-[#f59e0b]',
+        badgeBg: 'bg-[#fde68a]/35 text-[#b45309] border-[#d97706]/40',
+      };
+    }
+    return {
+      label: 'Needs attention',
+      textColor: 'text-[#c1441a]',
+      bgColor: 'bg-[#c1441a]',
+      badgeBg: 'bg-[#fecdd3]/40 text-[#c1441a] border-[#c1441a]/40',
+    };
+  };
+
+  const hasActiveFilters =
+    searchQuery.trim().length > 0 || filterTemplate !== 'all' || filterTag !== 'all';
+
+  const resetFilters = () => {
+    setSearchQuery('');
+    setFilterTemplate('all');
+    setFilterTag('all');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <main className="home-sans min-h-screen bg-[#f5f4ed] text-[#151b26] overflow-x-clip flex flex-col">
+      {/* Site Header matching the Homepage */}
+      <Header />
 
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-            <OptimizedLogo forgeColor="text-black" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              <HiPlus className="w-4 h-4" />
-              New Resume
-            </button>
+      {/* Main Workspace Body */}
+      <div className="flex-1 max-w-[1328px] w-full mx-auto px-4 sm:px-8 py-10 sm:py-16">
+        {/* Workspace Hero Section */}
+        <section className="mb-10 sm:mb-14 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#e3dacc] pb-8">
+          <div>
+            <p className="home-mono text-[13px] sm:text-[14px] uppercase tracking-[0.06em] text-[#c1441a]">
+              Resume Workspace
+            </p>
+            <h1 className="home-serif mt-3 text-[44px] sm:text-[68px] lg:text-[78px] leading-[0.98] tracking-[-0.04em] text-[#151b26]">
+              Your Resumes
+            </h1>
+            <p className="mt-4 max-w-[680px] text-[18px] sm:text-[22px] leading-[1.35] tracking-[-0.015em] text-[#606060]">
+              Manage your drafts, track real-time ATS scores, organize with tags, and pick from six layouts built for different career fields.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/builder"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+              className="inline-flex h-12 sm:h-13 items-center gap-2 rounded-full border border-[#151b26] bg-transparent px-5 sm:px-6 text-[15px] sm:text-[16px] font-medium text-[#151b26] hover:bg-[#151b26]/5 transition-colors"
             >
               <HiPencilSquare className="w-4 h-4" />
-              Open Editor
+              <span>Open Builder</span>
             </Link>
+
+            <button
+              onClick={() => {
+                setNewResumeName('');
+                setShowCreateModal(true);
+              }}
+              className="inline-flex h-12 sm:h-13 items-center gap-2 rounded-full bg-[#c1441a] px-6 text-[15px] sm:text-[16px] font-medium text-white shadow-[0_10px_28px_-8px_rgba(193,68,26,0.45)] hover:bg-[#a9390f] transition-all"
+            >
+              <HiPlus className="w-4 h-4 stroke-2" />
+              <span>Create Resume</span>
+            </button>
+          </div>
+        </section>
+
+        {/* 4 Metric Stats Cards in Homepage Editorial Style */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-10">
+          {/* Card 1: Total Resumes */}
+          <div className="rounded-[14px] border border-[#e3dacc] bg-[#fbfaf6] p-5 sm:p-6 transition-all hover:bg-white hover:border-[#151b26]/30">
+            <span className="home-mono text-[12px] uppercase tracking-[0.06em] text-[#606060]">
+              Saved Drafts
+            </span>
+            <p className="home-serif text-[38px] sm:text-[46px] leading-none text-[#151b26] mt-3">
+              {resumeList.length}
+            </p>
+            <p className="text-[13px] text-[#8a877f] mt-2">
+              {resumeList.length === 1 ? '1 active draft stored' : `${resumeList.length} drafts stored in session`}
+            </p>
+          </div>
+
+          {/* Card 2: Average ATS Readiness */}
+          <div className="rounded-[14px] border border-[#e3dacc] bg-[#fbfaf6] p-5 sm:p-6 transition-all hover:bg-white hover:border-[#151b26]/30">
+            <span className="home-mono text-[12px] uppercase tracking-[0.06em] text-[#606060]">
+              ATS Readiness
+            </span>
+            <div className="flex items-baseline gap-1 mt-3">
+              <span className="home-serif text-[38px] sm:text-[46px] leading-none text-[#151b26]">
+                {resumeList.length > 0 ? avgATS : '--'}
+              </span>
+              {resumeList.length > 0 && <span className="home-mono text-[16px] text-[#8a877f]">/100</span>}
+            </div>
+            <p className="text-[13px] text-[#8a877f] mt-2">
+              {resumeList.length === 0
+                ? 'Create a resume to score'
+                : avgATS >= 80
+                ? 'High interview readiness'
+                : avgATS >= 60
+                ? 'Competitive benchmark'
+                : 'Improvements suggested'}
+            </p>
+          </div>
+
+          {/* Card 3: Templates Active */}
+          <div className="rounded-[14px] border border-[#e3dacc] bg-[#fbfaf6] p-5 sm:p-6 transition-all hover:bg-white hover:border-[#151b26]/30">
+            <span className="home-mono text-[12px] uppercase tracking-[0.06em] text-[#606060]">
+              Active Layouts
+            </span>
+            <div className="flex items-baseline gap-1 mt-3">
+              <span className="home-serif text-[38px] sm:text-[46px] leading-none text-[#151b26]">
+                {new Set(resumeList.map((r) => r.template)).size}
+              </span>
+              <span className="home-mono text-[16px] text-[#8a877f]">/6</span>
+            </div>
+            <p className="text-[13px] text-[#8a877f] mt-2">Role-calibrated formats</p>
+          </div>
+
+          {/* Card 4: Tags Used */}
+          <div className="rounded-[14px] border border-[#e3dacc] bg-[#fbfaf6] p-5 sm:p-6 transition-all hover:bg-white hover:border-[#151b26]/30">
+            <span className="home-mono text-[12px] uppercase tracking-[0.06em] text-[#606060]">
+              Custom Tags
+            </span>
+            <p className="home-serif text-[38px] sm:text-[46px] leading-none text-[#151b26] mt-3">
+              {allTags.length}
+            </p>
+            <p className="text-[13px] text-[#8a877f] mt-2 truncate">
+              {allTags.length > 0 ? `${allTags.length} categories applied` : 'Categorize target roles'}
+            </p>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[
-            { Icon: HiDocumentText,  value: resumeList.length,                  label: 'Total Resumes',    accent: 'border-l-blue-500',    iconCls: 'text-blue-500'    },
-            { Icon: HiTag,           value: allTags.length,                     label: 'Tags Used',        accent: 'border-l-purple-500',  iconCls: 'text-purple-500'  },
-            { Icon: HiFolderOpen,    value: Object.keys(TEMPLATE_INFO).length,  label: 'Templates',        accent: 'border-l-green-500',   iconCls: 'text-green-500'   },
-            { Icon: HiShieldCheck,   value: 'ATS',                              label: 'Optimized Format', accent: 'border-l-emerald-500', iconCls: 'text-emerald-500' },
-          ].map(({ Icon, value, label, accent, iconCls }, i) => (
-            <div key={i} className={`bg-white rounded-xl p-5 shadow-sm border border-gray-200 border-l-4 ${accent}`}>
-              <Icon className={`w-6 h-6 mb-2 ${iconCls}`} />
-              <div className="text-2xl font-bold text-gray-800">{value}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{label}</div>
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 mb-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex-1 min-w-52 relative">
-              <HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        {/* Search, Filter & Sort Controls */}
+        <div className="rounded-[14px] border border-[#e3dacc] bg-[#fbfaf6] p-4 sm:p-5 mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3 sm:gap-4">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[200px]">
+              <HiMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8a877f] pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search resumes..."
+                placeholder="Search resumes by title, candidate name, or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full pl-10 pr-9 py-2.5 text-[15px] bg-white border border-[#e3dacc] rounded-full focus:outline-none focus:border-[#151b26] text-[#151b26] transition-all placeholder:text-[#8a877f]"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-[#8a877f] hover:text-[#151b26] transition-colors"
+                  title="Clear search"
+                >
+                  <HiXMark className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            <select
-              value={filterTemplate}
-              onChange={(e) => setFilterTemplate(e.target.value as TemplateType | 'all')}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-            >
-              <option value="all">All Templates</option>
-              {Object.entries(TEMPLATE_INFO).map(([key, info]) => (
-                <option key={key} value={key}>{info.icon} {key.charAt(0).toUpperCase() + key.slice(1)}</option>
-              ))}
-            </select>
-            {allTags.length > 0 && (
-              <select
-                value={filterTag}
-                onChange={(e) => setFilterTag(e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-              >
-                <option value="all">All Tags</option>
-                {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
-              </select>
-            )}
-            <span className="text-xs text-gray-400 ml-auto">
-              {filteredResumes.length} of {resumeList.length} resume{resumeList.length !== 1 ? 's' : ''}
-            </span>
+
+            {/* Filter Dropdowns & Sort */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+              {/* Template Select */}
+              <div className="relative">
+                <select
+                  value={filterTemplate}
+                  onChange={(e) => setFilterTemplate(e.target.value as TemplateType | 'all')}
+                  className="px-4 py-2.5 pr-8 text-[14px] font-medium bg-white border border-[#e3dacc] rounded-full focus:outline-none focus:border-[#151b26] text-[#151b26] cursor-pointer appearance-none"
+                >
+                  <option value="all">All Templates</option>
+                  {Object.entries(TEMPLATE_INFO).map(([key, info]) => (
+                    <option key={key} value={key}>
+                      {info.icon} {info.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8a877f] text-xs">
+                  ▼
+                </div>
+              </div>
+
+              {/* Tag Select */}
+              {allTags.length > 0 && (
+                <div className="relative">
+                  <select
+                    value={filterTag}
+                    onChange={(e) => setFilterTag(e.target.value)}
+                    className="px-4 py-2.5 pr-8 text-[14px] font-medium bg-white border border-[#e3dacc] rounded-full focus:outline-none focus:border-[#151b26] text-[#151b26] cursor-pointer appearance-none"
+                  >
+                    <option value="all">All Tags ({allTags.length})</option>
+                    {allTags.map((tag) => (
+                      <option key={tag} value={tag}>
+                        🏷️ {tag}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8a877f] text-xs">
+                    ▼
+                  </div>
+                </div>
+              )}
+
+              {/* Sort By Select */}
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'updated' | 'score' | 'title')}
+                  className="px-4 py-2.5 pr-8 text-[14px] font-medium bg-white border border-[#e3dacc] rounded-full focus:outline-none focus:border-[#151b26] text-[#151b26] cursor-pointer appearance-none"
+                >
+                  <option value="updated">Recently Updated</option>
+                  <option value="score">Highest ATS Score</option>
+                  <option value="title">Alphabetical (A-Z)</option>
+                </select>
+                <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8a877f] text-xs">
+                  ▼
+                </div>
+              </div>
+
+              {/* Reset Filters */}
+              {hasActiveFilters && (
+                <button
+                  onClick={resetFilters}
+                  className="inline-flex items-center gap-1 px-3 py-2 text-[13px] font-medium text-[#c1441a] bg-[#c1441a]/10 border border-[#c1441a]/30 rounded-full hover:bg-[#c1441a]/15 transition-colors"
+                >
+                  <HiXMark className="w-3.5 h-3.5" />
+                  <span>Reset</span>
+                </button>
+              )}
+
+              {/* Counter */}
+              <span className="home-mono ml-auto text-[13px] text-[#606060] px-3.5 py-1.5 rounded-full bg-white border border-[#e3dacc]">
+                {filteredResumes.length} of {resumeList.length} resume{resumeList.length !== 1 ? 's' : ''}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
+        {/* Resumes Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
           {filteredResumes.map((resume) => {
-            const tInfo      = TEMPLATE_INFO[resume.template as TemplateType] || TEMPLATE_INFO.software;
-            const isActive   = resume.id === currentResumeId;
-            const atsScore   = calculateATSScore(resume);
-            const atsColors  = getATSColor(atsScore.overall);
+            const tInfo =
+              TEMPLATE_INFO[resume.template as TemplateType] || TEMPLATE_INFO.software;
+            const isActive = resume.id === currentResumeId;
+            const atsScore = calculateATSScore(resume);
+            const atsMetrics = getATSMetrics(atsScore.overall);
             const isRenaming = renamingId === resume.id;
+            const isAddingTag = addingTagToId === resume.id;
 
             return (
               <div
                 key={resume.id}
-                className={`resume-card group bg-white rounded-xl shadow-sm border-2 overflow-hidden transition-all duration-200 hover:shadow-md flex flex-col ${
-                  isActive ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200 hover:border-gray-300'
+                className={`resume-card group rounded-[16px] border bg-[#fbfaf6] p-6 transition-all duration-200 flex flex-col justify-between hover:bg-white hover:border-[#151b26]/40 hover:shadow-[0_12px_36px_-12px_rgba(21,27,38,0.12)] ${
+                  isActive ? 'border-[#151b26] ring-2 ring-[#151b26]/20' : 'border-[#e3dacc]'
                 }`}
               >
-                <div className={`h-1 w-full ${tInfo.accent}`} />
+                <div>
+                  {/* Card Header */}
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <span className="home-mono text-[12px] uppercase tracking-[0.05em] px-3 py-1 rounded-full bg-white border border-[#e3dacc] text-[#151b26] font-medium flex items-center gap-1.5">
+                      <span>{tInfo.icon}</span>
+                      <span>{tInfo.name}</span>
+                    </span>
 
-                <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 ${TEMPLATE_BADGE[tInfo.color] ?? 'bg-gray-100'}`}>
-                      {tInfo.icon}
+                    <div className="flex items-center gap-2">
+                      {isActive && (
+                        <span className="home-mono text-[11px] uppercase tracking-[0.06em] px-2.5 py-0.5 rounded-full bg-[#151b26] text-white">
+                          Active
+                        </span>
+                      )}
+                      <span
+                        className={`home-mono text-[12px] font-semibold px-2.5 py-0.5 rounded-full border ${atsMetrics.badgeBg}`}
+                        title={`ATS Score: ${atsScore.overall}/100`}
+                      >
+                        {atsScore.overall} ATS
+                      </span>
                     </div>
-                    <div className="min-w-0">
-                      {isRenaming ? (
+                  </div>
+
+                  {/* Title & Rename */}
+                  <div className="mb-4">
+                    {isRenaming ? (
+                      <div className="flex items-center gap-1">
                         <input
                           ref={renameInputRef}
                           value={renameValue}
                           onChange={(e) => setRenameValue(e.target.value)}
                           onBlur={() => handleCommitRename(resume.id)}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter')  handleCommitRename(resume.id);
+                            if (e.key === 'Enter') handleCommitRename(resume.id);
                             if (e.key === 'Escape') setRenamingId(null);
                           }}
-                          className="w-full text-sm font-semibold border-b-2 border-blue-400 outline-none bg-transparent pb-0.5"
+                          className="w-full home-serif text-[22px] font-medium text-[#151b26] border-b-2 border-[#151b26] outline-none bg-transparent py-0.5"
                         />
-                      ) : (
+                        <button
+                          onClick={() => handleCommitRename(resume.id)}
+                          className="p-1 text-[#156e3b] hover:opacity-80"
+                          title="Save"
+                        >
+                          <HiCheck className="w-5 h-5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 group/title">
                         <h3
-                          className="font-semibold text-gray-800 text-sm truncate cursor-pointer hover:text-blue-600 transition-colors"
+                          className="home-serif text-[22px] sm:text-[24px] font-medium text-[#151b26] tracking-[-0.02em] truncate cursor-pointer hover:text-[#c1441a] transition-colors"
                           title="Click to rename"
                           onClick={() => handleStartRename(resume.id, resume.title)}
                         >
                           {resume.title}
                         </h3>
-                      )}
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${TEMPLATE_BADGE[tInfo.color] ?? 'bg-gray-100 text-gray-600'}`}>
-                        {resume.template.charAt(0).toUpperCase() + resume.template.slice(1)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {isActive && (
-                      <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium">Active</span>
-                    )}
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ring-1 ${atsColors.text} ${atsColors.ring} bg-white`}>
-                      {atsScore.overall}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="px-4 pb-3 flex-1">
-                  <div className="space-y-1 text-xs text-gray-500 mb-3">
-                    {resume.personalInfo?.name && (
-                      <div className="flex items-center gap-1.5">
-                        <HiUser className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{resume.personalInfo.name}</span>
+                        <button
+                          onClick={() => handleStartRename(resume.id, resume.title)}
+                          className="opacity-0 group-hover/title:opacity-100 text-[#8a877f] hover:text-[#151b26] transition-opacity p-0.5"
+                          title="Rename"
+                        >
+                          <HiPencil className="w-4 h-4" />
+                        </button>
                       </div>
                     )}
+                  </div>
+
+                  {/* Candidate Details Snippet */}
+                  <div className="space-y-1.5 text-[13px] text-[#606060] mb-4 bg-white p-3.5 rounded-[10px] border border-[#efece4]">
+                    <div className="flex items-center gap-2 truncate">
+                      <HiUser className="w-4 h-4 text-[#8a877f] shrink-0" />
+                      <span className="truncate font-medium text-[#151b26]">
+                        {resume.personalInfo?.name || 'No name entered'}
+                      </span>
+                    </div>
                     {resume.personalInfo?.email && (
-                      <div className="flex items-center gap-1.5">
-                        <HiEnvelope className="w-3.5 h-3.5 shrink-0" />
+                      <div className="flex items-center gap-2 truncate">
+                        <HiEnvelope className="w-4 h-4 text-[#8a877f] shrink-0" />
                         <span className="truncate">{resume.personalInfo.email}</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-1.5">
-                      <HiCalendarDays className="w-3.5 h-3.5 shrink-0" />
-                      <span>Updated {new Date(resume.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-gray-400 flex items-center gap-1">
-                        <HiChartBarSquare className="w-3.5 h-3.5" /> ATS Score
+                    <div className="flex items-center gap-2 text-[#8a877f] home-mono text-[12px]">
+                      <HiClock className="w-4 h-4 shrink-0" />
+                      <span>
+                        Updated{' '}
+                        {new Date(resume.updatedAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
                       </span>
-                      <span className={`font-semibold ${atsColors.text}`}>{atsScore.overall}/100</span>
-                    </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${atsColors.bg} transition-all duration-500`} style={{ width: `${atsScore.overall}%` }} />
                     </div>
                   </div>
 
-                  <div>
-                    <div className="flex flex-wrap gap-1 mb-1.5">
-                      {(resume.tags || []).map(tag => (
-                        <span key={tag} className="flex items-center gap-0.5 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-                          {tag}
+                  {/* ATS Score Visual Progress Meter */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between text-[13px] mb-1.5">
+                      <span className="text-[#606060] font-normal">ATS Readiness</span>
+                      <span className={`font-semibold ${atsMetrics.textColor}`}>
+                        {atsScore.overall}/100 • {atsMetrics.label}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-[#efece4] rounded-full overflow-hidden p-0.5 border border-[#e3dacc]">
+                      <div
+                        className={`h-full rounded-full ${atsMetrics.bgColor} transition-all duration-500`}
+                        style={{ width: `${Math.max(atsScore.overall, 4)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Tags Management */}
+                  <div className="mb-4">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {(resume.tags || []).map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white text-[#151b26] border border-[#e3dacc] text-[12px] font-medium rounded-full"
+                        >
+                          <span>{tag}</span>
                           <button
                             onClick={() => removeTag(resume.id, tag)}
-                            className="text-gray-400 hover:text-red-500 leading-none ml-0.5"
+                            className="text-[#8a877f] hover:text-[#c1441a] transition-colors p-0.5"
+                            title={`Remove ${tag}`}
                           >
                             <HiXMark className="w-3 h-3" />
                           </button>
                         </span>
                       ))}
-                    </div>
-                    <div className="flex gap-1">
-                      <input
-                        type="text"
-                        placeholder="Add tag..."
-                        value={tagInput[resume.id] || ''}
-                        onChange={(e) => setTagInput({ ...tagInput, [resume.id]: e.target.value })}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddTag(resume.id)}
-                        className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded-md outline-none focus:border-blue-400"
-                      />
-                      <button
-                        onClick={() => handleAddTag(resume.id)}
-                        className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md hover:bg-gray-200 transition-colors"
-                      >
-                        <HiPlus className="w-3.5 h-3.5" />
-                      </button>
+
+                      {/* Add Tag Inline Control */}
+                      {isAddingTag ? (
+                        <div className="inline-flex items-center gap-1 bg-white border border-[#151b26] rounded-full px-2.5 py-0.5">
+                          <input
+                            type="text"
+                            placeholder="Tag name..."
+                            value={newTagInput}
+                            onChange={(e) => setNewTagInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddTagSubmit(resume.id);
+                              if (e.key === 'Escape') setAddingTagToId(null);
+                            }}
+                            className="text-[12px] outline-none w-20 text-[#151b26] bg-transparent"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => handleAddTagSubmit(resume.id)}
+                            className="text-[#156e3b] hover:opacity-80 p-0.5"
+                            title="Add"
+                          >
+                            <HiCheck className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setAddingTagToId(null)}
+                            className="text-[#8a877f] hover:text-[#151b26] p-0.5"
+                            title="Cancel"
+                          >
+                            <HiXMark className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setAddingTagToId(resume.id);
+                            setNewTagInput('');
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[12px] font-medium text-[#606060] hover:text-[#151b26] bg-white border border-dashed border-[#e3dacc] hover:border-[#151b26] rounded-full transition-colors"
+                          title="Add a custom tag"
+                        >
+                          <HiPlus className="w-3 h-3" />
+                          <span>Tag</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 flex items-center gap-2">
+                {/* Card Action Footer */}
+                <div className="pt-4 border-t border-[#e3dacc] flex items-center justify-between gap-2">
                   <button
                     onClick={() => handleEditResume(resume.id)}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[#151b26] px-4 py-2.5 text-[14px] font-medium text-white hover:bg-[#262e3d] transition-colors"
                   >
-                    <HiPencilSquare className="w-3.5 h-3.5" />
-                    Edit
+                    <HiPencilSquare className="w-4 h-4" />
+                    <span>Open in Editor</span>
                   </button>
-                  <button
-                    onClick={() => handleStartRename(resume.id, resume.title)}
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-                    title="Rename"
-                  >
-                    <HiPencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => duplicateResume(resume.id)}
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-                    title="Duplicate"
-                  >
-                    <HiDocumentDuplicate className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteTarget({ id: resume.id, title: resume.title })}
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
-                    title="Delete"
-                  >
-                    <HiTrash className="w-3.5 h-3.5" />
-                  </button>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleStartRename(resume.id, resume.title)}
+                      className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-[#e3dacc] bg-white text-[#151b26] hover:bg-[#efece4] transition-colors"
+                      title="Rename Resume"
+                    >
+                      <HiPencil className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => duplicateResume(resume.id)}
+                      className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-[#e3dacc] bg-white text-[#151b26] hover:bg-[#efece4] transition-colors"
+                      title="Duplicate Resume"
+                    >
+                      <HiDocumentDuplicate className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => setDeleteTarget({ id: resume.id, title: resume.title })}
+                      className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-[#c1441a]/30 bg-white text-[#c1441a] hover:bg-[#c1441a]/10 transition-colors"
+                      title="Delete Resume"
+                    >
+                      <HiTrash className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
           })}
 
+          {/* Empty State */}
           {filteredResumes.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <HiDocumentText className="w-10 h-10 text-gray-400" />
+            <div className="col-span-full flex flex-col items-center justify-center py-20 px-4 text-center bg-[#fbfaf6] rounded-[18px] border border-[#e3dacc]">
+              <div className="w-16 h-16 bg-white border border-[#e3dacc] text-[#151b26] rounded-full flex items-center justify-center mb-4 shadow-sm">
+                <HiOutlineDocumentText className="w-8 h-8" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-1">
-                {resumeList.length === 0 ? 'No resumes yet' : 'No results'}
+              <h3 className="home-serif text-[28px] text-[#151b26] mb-2">
+                {resumeList.length === 0 ? 'No Resumes Created Yet' : 'No Resumes Match Filters'}
               </h3>
-              <p className="text-sm text-gray-400 mb-6 max-w-xs">
+              <p className="text-[17px] text-[#606060] mb-8 max-w-md">
                 {resumeList.length === 0
-                  ? 'Create your first resume to get started.'
-                  : 'Try adjusting your search or filters.'}
+                  ? 'Get started by creating your first ATS-optimized resume. Choose from our specialized role templates.'
+                  : 'Try clearing your search query or removing template and tag filters to view all your resumes.'}
               </p>
-              {resumeList.length === 0 && (
+              {resumeList.length === 0 ? (
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  className="inline-flex h-12 items-center gap-2 rounded-full bg-[#c1441a] px-6 text-[16px] font-medium text-white shadow-[0_10px_28px_-8px_rgba(193,68,26,0.45)] hover:bg-[#a9390f] transition-all"
                 >
-                  <HiPlus className="w-4 h-4" /> Create Resume
+                  <HiPlus className="w-4 h-4 stroke-2" />
+                  <span>Create Your First Resume</span>
+                </button>
+              ) : (
+                <button
+                  onClick={resetFilters}
+                  className="inline-flex h-11 items-center gap-2 rounded-full border border-[#151b26] bg-white px-5 text-[15px] font-medium text-[#151b26] hover:bg-[#efece4] transition-colors"
+                >
+                  <HiXMark className="w-4 h-4" />
+                  <span>Clear Search & Filters</span>
                 </button>
               )}
             </div>
           )}
         </div>
 
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Available Templates</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Available Templates Section (matches homepage TemplatesSection.tsx) */}
+        <section className="mt-16 pt-12 border-t border-[#e3dacc]">
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div>
+              <p className="home-mono text-[13px] uppercase tracking-[0.06em] text-[#c1441a]">
+                Role Formats
+              </p>
+              <h2 className="home-serif text-[36px] sm:text-[48px] leading-[1.05] tracking-[-0.03em] text-[#151b26] mt-2">
+                Explore Resume Templates
+              </h2>
+              <p className="mt-2 text-[17px] text-[#606060] max-w-[620px]">
+                Every template is a single column of real text, so applicant tracking software can read it. What changes is the order of sections and what each one emphasizes.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Object.entries(TEMPLATE_INFO).map(([key, info]) => (
-              <button
+              <div
                 key={key}
-                onClick={() => { setNewResumeTemplate(key as TemplateType); setShowCreateModal(true); }}
-                className="bg-white rounded-xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all text-left group"
+                className="rounded-[16px] border border-[#e3dacc] bg-[#fbfaf6] p-6 hover:bg-white hover:border-[#151b26]/40 transition-all flex flex-col justify-between"
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl ${TEMPLATE_BADGE[info.color] ?? 'bg-gray-100'}`}>
-                    {info.icon}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-2xl">{info.icon}</span>
+                    <span className="home-mono text-[11px] uppercase tracking-[0.06em] text-[#8a877f]">
+                      {info.category}
+                    </span>
                   </div>
-                  <h3 className="text-sm font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">
-                    {key.charAt(0).toUpperCase() + key.slice(1)}
-                  </h3>
+
+                  <h3 className="home-serif text-[24px] text-[#151b26] mb-2">{info.name}</h3>
+                  <p className="text-[15px] text-[#606060] leading-relaxed mb-4">{info.body}</p>
+
+                  <div className="flex flex-wrap gap-1.5 mb-6">
+                    {info.highlights.map((h, i) => (
+                      <span
+                        key={i}
+                        className="home-mono text-[11px] uppercase tracking-[0.04em] px-2.5 py-0.5 rounded-full bg-white border border-[#e3dacc] text-[#606060]"
+                      >
+                        {h}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500">{info.description}</p>
-              </button>
+
+                <button
+                  onClick={() => {
+                    setNewResumeTemplate(key as TemplateType);
+                    setNewResumeName('');
+                    setShowCreateModal(true);
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-[#151b26] bg-white py-2.5 text-[14px] font-medium text-[#151b26] hover:bg-[#151b26] hover:text-white transition-colors"
+                >
+                  <HiPlus className="w-4 h-4" />
+                  <span>Create with {info.name}</span>
+                </button>
+              </div>
             ))}
           </div>
-        </div>
-      </main>
+        </section>
+      </div>
 
+      {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 z-10">
-            <div className="flex items-center justify-center w-14 h-14 bg-red-100 rounded-full mx-auto mb-4">
-              <HiTrash className="w-7 h-7 text-red-500" />
+          <div
+            className="absolute inset-0 bg-[#151b26]/50 backdrop-blur-xs transition-opacity"
+            onClick={() => setDeleteTarget(null)}
+          />
+          <div className="relative bg-[#fbfaf6] rounded-[20px] shadow-2xl border border-[#e3dacc] w-full max-w-sm p-6 sm:p-7 z-10 text-[#151b26]">
+            <div className="flex items-center justify-center w-12 h-12 bg-[#c1441a]/15 text-[#c1441a] rounded-full mx-auto mb-4">
+              <HiExclamationTriangle className="w-6 h-6" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800 text-center mb-1">Delete Resume?</h2>
-            <p className="text-sm text-gray-500 text-center mb-6">
-              <span className="font-medium text-gray-700">"{deleteTarget.title}"</span> will be permanently
-              deleted. This action cannot be undone.
+
+            <h2 className="home-serif text-[24px] text-center mb-2">Delete Resume?</h2>
+
+            <p className="text-[15px] text-[#606060] text-center mb-6 leading-relaxed">
+              Are you sure you want to delete{' '}
+              <span className="font-semibold text-[#151b26]">"{deleteTarget.title}"</span>? This
+              action will permanently remove this draft from your browser session.
             </p>
+
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
+                className="flex-1 rounded-full border border-[#e3dacc] bg-white py-2.5 text-[15px] font-medium text-[#151b26] hover:bg-[#efece4] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 text-white text-sm font-semibold rounded-xl hover:bg-red-600 transition-colors shadow-sm"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-full bg-[#c1441a] text-white py-2.5 text-[15px] font-medium hover:bg-[#a9390f] transition-colors"
               >
-                <HiTrash className="w-4 h-4" /> Delete
+                <HiTrash className="w-4 h-4" />
+                <span>Delete</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Create New Resume Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 z-10">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-gray-800">Create New Resume</h2>
+          <div
+            className="absolute inset-0 bg-[#151b26]/50 backdrop-blur-xs transition-opacity"
+            onClick={() => setShowCreateModal(false)}
+          />
+          <div className="relative bg-[#fbfaf6] rounded-[22px] shadow-2xl border border-[#e3dacc] w-full max-w-lg p-6 sm:p-8 z-10 max-h-[92vh] overflow-y-auto text-[#151b26]">
+            <div className="flex items-center justify-between pb-4 border-b border-[#e3dacc] mb-6">
+              <div>
+                <p className="home-mono text-[12px] uppercase tracking-[0.06em] text-[#c1441a]">
+                  New Draft
+                </p>
+                <h2 className="home-serif text-[28px] sm:text-[32px] leading-tight text-[#151b26]">
+                  Create New Resume
+                </h2>
+              </div>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-full border border-[#e3dacc] bg-white text-[#8a877f] hover:text-[#151b26] transition-colors"
               >
                 <HiXMark className="w-5 h-5" />
               </button>
             </div>
-            <div className="space-y-5">
+
+            <div className="space-y-6">
+              {/* Resume Title Input */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Resume Name</label>
+                <label className="block home-mono text-[12px] uppercase tracking-[0.06em] text-[#606060] mb-2">
+                  Resume Title
+                </label>
                 <input
                   type="text"
                   placeholder="e.g., Software Engineer - Google"
                   value={newResumeName}
                   onChange={(e) => setNewResumeName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateResume()}
-                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full px-4 py-2.5 text-[15px] bg-white border border-[#e3dacc] rounded-[10px] focus:outline-none focus:border-[#151b26] text-[#151b26] transition-all"
                   autoFocus
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Choose Template</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(TEMPLATE_INFO).map(([key, info]) => (
+
+                {/* Suggestions */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+                  <span className="home-mono text-[11px] text-[#8a877f]">Suggestions:</span>
+                  {SAMPLE_SUGGESTIONS.map((suggestion) => (
                     <button
-                      key={key}
-                      onClick={() => setNewResumeTemplate(key as TemplateType)}
-                      className={`flex items-center gap-2 p-3 border-2 rounded-xl text-left transition-all ${
-                        newResumeTemplate === key
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
+                      key={suggestion}
+                      type="button"
+                      onClick={() => setNewResumeName(suggestion)}
+                      className="text-[12px] px-2.5 py-0.5 rounded-full bg-white hover:bg-[#efece4] text-[#606060] hover:text-[#151b26] border border-[#e3dacc] transition-colors"
                     >
-                      <span className="text-xl">{info.icon}</span>
-                      <span className="text-sm font-medium text-gray-700">
-                        {key.charAt(0).toUpperCase() + key.slice(1)}
-                      </span>
-                      {newResumeTemplate === key && (
-                        <HiCheck className="w-4 h-4 text-blue-500 ml-auto shrink-0" />
-                      )}
+                      {suggestion}
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* Template Picker */}
+              <div>
+                <label className="block home-mono text-[12px] uppercase tracking-[0.06em] text-[#606060] mb-2.5">
+                  Choose Role Template
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(TEMPLATE_INFO).map(([key, info]) => {
+                    const isSelected = newResumeTemplate === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setNewResumeTemplate(key as TemplateType)}
+                        className={`flex items-start gap-2.5 p-3.5 rounded-[12px] border text-left transition-all ${
+                          isSelected
+                            ? 'border-[#151b26] bg-white ring-2 ring-[#151b26]/20'
+                            : 'border-[#e3dacc] bg-[#fbfaf6] hover:bg-white hover:border-[#151b26]/40'
+                        }`}
+                      >
+                        <span className="text-2xl mt-0.5">{info.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="home-serif text-[18px] text-[#151b26] truncate">
+                              {info.name}
+                            </span>
+                            {isSelected && (
+                              <HiCheck className="w-4 h-4 text-[#c1441a] shrink-0 ml-1" />
+                            )}
+                          </div>
+                          <p className="text-[12px] text-[#8a877f] line-clamp-2 mt-0.5 leading-snug">
+                            {info.body}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <div className="flex gap-3 mt-6">
+
+            <div className="flex gap-3 mt-8 pt-5 border-t border-[#e3dacc]">
               <button
+                type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
+                className="flex-1 rounded-full border border-[#e3dacc] bg-white py-2.5 text-[15px] font-medium text-[#151b26] hover:bg-[#efece4] transition-colors"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleCreateResume}
-                disabled={!newResumeName.trim()}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[#c1441a] text-white py-2.5 text-[15px] font-medium hover:bg-[#a9390f] shadow-sm transition-all"
               >
-                <HiPencilSquare className="w-4 h-4" /> Create & Edit
+                <HiPencilSquare className="w-4 h-4" />
+                <span>Create & Open Editor</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-    </div>
+      {/* Site Footer matching the Homepage */}
+      <Footer />
+    </main>
   );
 }
 

@@ -1,215 +1,108 @@
-"use client";
-import React, { useRef, useEffect } from "react";
-import { gsap } from "gsap";
+'use client';
 
-interface OptimizedLogoProps {
+import React from 'react';
+
+export interface OptimizedLogoProps {
   forgeColor?: string;
+  size?: 'sm' | 'md' | 'lg';
+  showText?: boolean;
+  className?: string;
 }
 
-const OptimizedLogo: React.FC<OptimizedLogoProps> = ({ forgeColor = "text-white" }) => {
-  const logoRef = useRef<HTMLDivElement>(null);
+const OptimizedLogo: React.FC<OptimizedLogoProps> = ({
+  forgeColor = 'text-[#151b26]',
+  size = 'md',
+  showText = true,
+  className = '',
+}) => {
+  const isDarkBg =
+    forgeColor.includes('white') ||
+    forgeColor.includes('slate-100') ||
+    forgeColor.includes('gray-100');
 
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Main logo entrance animation
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: logoRef.current,
-          start: "top 90%",
-        }
-      });
+  const mainTextColor = isDarkBg ? 'text-white' : 'text-[#151b26]';
 
-      // Hammer dramatic entrance with 3D rotation
-      tl.fromTo(
-        ".logo-hammer",
-        {
-          rotationY: -180,
-          rotationX: -45,
-          scale: 0.3,
-          opacity: 0,
-          transformOrigin: "center center"
-        },
-        {
-          rotationY: 0,
-          rotationX: 0,
-          scale: 1,
-          opacity: 1,
-          duration: 1.2,
-          ease: "back.out(2)",
-        }
-      );
-
-      // Sparks explosion effect
-      tl.fromTo(
-        ".logo-spark",
-        { scale: 0, opacity: 0, rotation: 0 },
-        {
-          scale: gsap.utils.random(1, 2.5),
-          opacity: 1,
-          rotation: gsap.utils.random(180, 720),
-          duration: 0.8,
-          stagger: 0.1,
-          ease: "power2.out",
-        },
-        "-=0.8"
-      );
-
-      // Text dramatic entrance with 3D effect
-      tl.fromTo(
-        ".logo-text",
-        {
-          y: 30,
-          opacity: 0,
-          rotationX: -90,
-          transformOrigin: "center bottom"
-        },
-        {
-          y: 0,
-          opacity: 1,
-          rotationX: 0,
-          duration: 0.8,
-          stagger: 0.2,
-          ease: "back.out(1.5)",
-        },
-        "-=0.6"
-      );
-
-      // Continuous floating animation
-      gsap.to(".logo-hammer", {
-        y: -3,
-        duration: 2,
-        ease: "power2.inOut",
-        yoyo: true,
-        repeat: -1,
-        delay: 2,
-      });
-
-      // Glowing effect animation
-      gsap.to(".logo-glow", {
-        opacity: 0.8,
-        scale: 1.1,
-        duration: 1.5,
-        ease: "power2.inOut",
-        yoyo: true,
-        repeat: -1,
-        delay: 2.5,
-      });
-
-      // Spark continuous animation
-      gsap.to(".logo-spark", {
-        scale: gsap.utils.random(0.8, 1.5),
-        rotation: "+=360",
-        duration: gsap.utils.random(2, 4),
-        ease: "none",
-        stagger: 0.3,
-        repeat: -1,
-        delay: 3,
-      });
-
-      // Metallic shine effect
-      gsap.to(".logo-shine", {
-        x: 50,
-        duration: 3,
-        ease: "power2.inOut",
-        repeat: -1,
-        delay: 1.5,
-      });
-
-    }, logoRef);
-    return () => ctx.revert();
-  }, []);
+  const sizeClasses = {
+    sm: {
+      icon: 'w-7 h-7',
+      text: 'text-[20px]',
+    },
+    md: {
+      icon: 'w-8 h-8 sm:w-8.5 sm:h-8.5',
+      text: 'text-[24px] sm:text-[26px]',
+    },
+    lg: {
+      icon: 'w-10 h-10 sm:w-11 sm:h-11',
+      text: 'text-[32px] sm:text-[38px]',
+    },
+  }[size];
 
   return (
-    <div ref={logoRef} className="flex items-center gap-2 text-lg font-bold text-white tracking-tight">
-      {/* Logo Icon with 3D Container */}
-      <div className="relative" style={{ perspective: "1000px" }}>
-        {/* Glow Effect */}
-        <div className="logo-glow absolute inset-0 bg-orange-400/20 rounded-full blur-xl scale-75 opacity-0" />
+    <div className={`flex items-center gap-2.5 group select-none ${className}`}>
+      {/* Precision Emblem matching Homepage Color System */}
+      <div className="relative flex-shrink-0 transition-transform duration-200 ease-out group-hover:scale-105">
+        <svg
+          className={`${sizeClasses.icon} transition-shadow duration-200`}
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          {/* Deep Charcoal Squircle in Homepage Ink */}
+          <rect
+            x="2"
+            y="2"
+            width="32"
+            height="32"
+            rx="8.5"
+            fill="#151b26"
+          />
+          <rect
+            x="2.5"
+            y="2.5"
+            width="31"
+            height="31"
+            rx="8"
+            stroke="rgba(255,255,255,0.14)"
+            strokeWidth="1"
+          />
 
-        {/* Hammer with 3D styling */}
-        <div className="relative logo-hammer" style={{ transformStyle: "preserve-3d" }}>
-          <svg
-            className="w-7 h-7 text-orange-400 drop-shadow-2xl filter"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ filter: "drop-shadow(0 0 10px rgba(251, 146, 60, 0.5))" }}
-          >
-            {/* Hammer handle with gradient */}
-            <defs>
-              <linearGradient id="handleGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#8B4513" />
-                <stop offset="50%" stopColor="#A0522D" />
-                <stop offset="100%" stopColor="#8B4513" />
-              </linearGradient>
-              <linearGradient id="headGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#FFD700" />
-                <stop offset="50%" stopColor="#FFA500" />
-                <stop offset="100%" stopColor="#FF8C00" />
-              </linearGradient>
-            </defs>
+          {/* Folded Resume Sheet in Homepage Warm Linen #f5f4ed */}
+          <path
+            d="M9.5 8C9.5 6.89543 10.3954 6 11.5 6H20.5L26.5 12V26C26.5 27.1046 25.6046 28 24.5 28H11.5C10.3954 28 9.5 27.1046 9.5 26V8Z"
+            fill="#F5F4ED"
+          />
 
-            {/* Hammer handle */}
-            <rect x="11" y="8" width="2" height="12" rx="1" fill="url(#handleGradient)" />
+          {/* Corner Fold in Homepage Warm Border Tone #e3dacc */}
+          <path
+            d="M20.5 6V10.5C20.5 11.3284 21.1716 12 22 12H26.5L20.5 6Z"
+            fill="#E3DACC"
+          />
 
-            {/* Hammer head with metallic look */}
-            <rect x="6" y="4" width="12" height="6" rx="1" fill="url(#headGradient)" />
+          {/* ATS Resume Lines in Homepage Neutrals & Rust Accent */}
+          <rect x="12.5" y="10" width="5.5" height="1.8" rx="0.9" fill="#151B26" />
+          <rect x="12.5" y="14.5" width="9.5" height="1.4" rx="0.7" fill="#B5AE9F" />
+          <rect x="12.5" y="18" width="10.5" height="1.4" rx="0.7" fill="#B5AE9F" />
+          <rect x="12.5" y="21.5" width="7" height="1.4" rx="0.7" fill="#C1441A" />
+          <circle cx="22.5" cy="22.2" r="1" fill="#5FC788" />
 
-            {/* Hammer striking surface */}
-            <rect x="4" y="2" width="16" height="4" rx="1" fill="url(#headGradient)" opacity="0.9" />
-
-            {/* Metallic shine overlay */}
-            <rect
-              className="logo-shine"
-              x="4" y="2" width="4" height="4" rx="1"
-              fill="url(#headGradient)"
-              opacity="0.6"
-              style={{ transform: "translateX(-50px)" }}
-            />
-          </svg>
-        </div>
-
-        {/* Enhanced Sparks with more particles */}
-        <div className="absolute -top-2 -right-2">
-          <div className="logo-spark w-1.5 h-1.5 bg-yellow-300 rounded-full absolute top-0 right-0 shadow-lg" />
-          <div className="logo-spark w-1 h-1 bg-orange-300 rounded-full absolute top-2 right-3 shadow-md" />
-          <div className="logo-spark w-2 h-2 bg-yellow-400 rounded-full absolute -top-1 right-1 shadow-xl" />
-          <div className="logo-spark w-0.5 h-0.5 bg-orange-200 rounded-full absolute top-1 right-1 shadow-sm" />
-          <div className="logo-spark w-1 h-1 bg-yellow-200 rounded-full absolute -top-0.5 right-2 shadow-md" />
-        </div>
-
-        {/* Additional floating particles */}
-        <div className="absolute -top-3 left-2">
-          <div className="logo-spark w-0.5 h-0.5 bg-blue-300 rounded-full shadow-sm" />
-        </div>
-        <div className="absolute top-1 -left-1">
-          <div className="logo-spark w-1 h-1 bg-purple-300 rounded-full shadow-md" />
-        </div>
+          {/* Signature Rust Forge Sparkle #c1441a */}
+          <path
+            d="M27.5 3C27.5 5.3 29.3 7.1 31.5 7.1C29.3 7.1 27.5 8.9 27.5 11.2C27.5 8.9 25.7 7.1 23.5 7.1C25.7 7.1 27.5 5.3 27.5 3Z"
+            fill="#C1441A"
+          />
+          <circle cx="21" cy="4" r="0.8" fill="#F59E0B" opacity="0.9" />
+        </svg>
       </div>
 
-      {/* Enhanced Text with 3D effect */}
-      <div className="flex items-center gap-1" style={{ perspective: "500px" }}>
+      {/* Homepage Editorial Wordmark in home-serif */}
+      {showText && (
         <span
-          className="logo-text text-blue-400 font-black text-lg"
-          style={{
-            textShadow: "0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)",
-            transformStyle: "preserve-3d"
-          }}
+          className={`home-serif ${sizeClasses.text} tracking-[-0.025em] ${mainTextColor} leading-none`}
         >
-          Resume
+          ResumeForge
         </span>
-        <span
-          className={`logo-text ${forgeColor} font-black text-lg`}
-          style={{
-            textShadow: forgeColor === "text-black" 
-              ? "none" 
-              : "0 0 20px rgba(255, 255, 255, 0.5), 0 0 40px rgba(255, 255, 255, 0.3)",
-            transformStyle: "preserve-3d"
-          }}
-        >
-          Forge
-        </span>
-      </div>
+      )}
     </div>
   );
 };
