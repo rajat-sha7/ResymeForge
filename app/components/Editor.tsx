@@ -12,6 +12,7 @@ import EducationForm from './forms/EducationForm';
 import CertificationsForm from './forms/CertificationsForm';
 import AchievementsForm from './forms/AchievementsForm';
 import CustomSectionForm from './forms/CustomSectionForm';
+import { validateResumeData } from '../utils/validation';
 import gsap from 'gsap';
 
 const SECTION_ICONS: Record<string, string> = {
@@ -59,40 +60,42 @@ const Editor: React.FC = () => {
     setCollapsed(map);
   }, [sectionOrder]);
 
+  // Listen for jump to section events from validation drawer / modal
+  useEffect(() => {
+    const handleExpandSection = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      const sectionId = customEvent.detail;
+      if (!sectionId) return;
+
+      setCollapsed((prev) => ({ ...prev, [sectionId]: false }));
+      setSectionCollapsed(sectionId, false);
+
+      setTimeout(() => {
+        const targetEl = document.getElementById(`editor-section-${sectionId}`);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    };
+
+    window.addEventListener('expand-editor-section', handleExpandSection);
+    return () => {
+      window.removeEventListener('expand-editor-section', handleExpandSection);
+    };
+  }, [setSectionCollapsed]);
+
   // sync body element heights after collapsed changes or on mount
   useEffect(() => {
     Object.keys(sectionBodies.current).forEach((key) => {
       const el = sectionBodies.current[key];
       if (!el) return;
       if (collapsed[key]) {
-        // collapsed -> ensure height 0
         gsap.set(el, { height: 0, opacity: 0, overflow: 'hidden' });
       } else {
         gsap.set(el, { height: 'auto', opacity: 1, overflow: 'visible' });
       }
     });
   }, [collapsed]);
-
-  const animateToggle = (section: string) => {
-    const el = sectionBodies.current[section];
-    if (!el) return;
-    const isCollapsed = !!collapsed[section];
-    if (isCollapsed) {
-      // expand
-      const targetHeight = el.scrollHeight;
-      gsap.set(el, { height: 0, opacity: 0, overflow: 'hidden' });
-      gsap.to(el, { height: targetHeight, opacity: 1, duration: 0.32, ease: 'power2.out', onComplete: () => { gsap.set(el, { height: 'auto', overflow: 'visible' }); } });
-      setCollapsed((c) => ({ ...c, [section]: false }));
-      setSectionCollapsed(section, false);
-    } else {
-      // collapse
-      const fromHeight = el.scrollHeight;
-      gsap.set(el, { height: fromHeight, overflow: 'hidden' });
-      gsap.to(el, { height: 0, opacity: 0, duration: 0.28, ease: 'power2.in' });
-      setCollapsed((c) => ({ ...c, [section]: true }));
-      setSectionCollapsed(section, true);
-    }
-  };
 
   if (!currentResumeId || !resumes[currentResumeId]) {
     return (
@@ -107,6 +110,37 @@ const Editor: React.FC = () => {
   }
 
   const resume = resumes[currentResumeId];
+  const validationReport = validateResumeData(resume, enabledSections);
+
+  const isSectionFilled = (sec: string): boolean => {
+    switch (sec) {
+      case 'personalInfo':
+        return !!(resume.personalInfo?.name && resume.personalInfo?.email);
+      case 'professionalSummary':
+        const sum = typeof resume.professionalSummary === 'string'
+          ? resume.professionalSummary
+          : resume.professionalSummary?.summary;
+        return !!sum && sum.trim().length > 0;
+      case 'skills':
+        return (resume.skills?.length || 0) > 0;
+      case 'experience':
+        return (resume.experience?.length || 0) > 0;
+      case 'education':
+        return (resume.education?.length || 0) > 0;
+      case 'projects':
+        return (resume.projects?.length || 0) > 0;
+      case 'certifications':
+        return (resume.certifications?.length || 0) > 0;
+      case 'achievements':
+        return (resume.achievements?.length || 0) > 0;
+      default:
+        if (sec.startsWith('custom_') && resume.customSections) {
+          const cs = resume.customSections.find(c => c.id === sec);
+          return (cs?.items?.length || 0) > 0;
+        }
+        return false;
+    }
+  };
 
   const renderSection = (section: SectionType) => {
     if (!enabledSections.includes(section)) {
@@ -134,7 +168,6 @@ const Editor: React.FC = () => {
       case 'achievements':
         return <AchievementsForm data={resume.achievements} />;
       default:
-        // Handle custom sections
         if (section.startsWith('custom_') && resume.customSections) {
           const customSection = resume.customSections.find(cs => cs.id === section);
           if (customSection) {
@@ -171,35 +204,102 @@ const Editor: React.FC = () => {
 
       {/* Sections - Scrollable */}
       <div ref={sectionsRef} className="flex-1 overflow-y-auto p-6 space-y-6">
-        {orderedSections.map((section) => (
-          <div key={section} className="editor-section bg-white rounded-lg border border-gray-200">
-            {/* Section Header */}
-            <div className={`px-4 py-3 flex items-center justify-between border-b border-gray-100 ${section === 'personalInfo' ? '' : 'cursor-pointer'}`} onClick={() => {
-              if (section === 'personalInfo') return;
-              setCollapsed((c) => ({ ...c, [section]: !c[section] }));
-            }}>
-              <div className="flex items-center gap-3">
-                <div className="text-xl">{SECTION_ICONS[section] || '📌'}</div>
-                <div>
-                  <div className="text-sm font-medium text-gray-800">{section === 'personalInfo' ? 'Personal Information' : section.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</div>
-                  <div className="text-xs text-gray-500">{section === 'personalInfo' ? 'Basic contact details' : ''}</div>
+        {orderedSections.map((section) => {
+          const sectionValidation = validationReport.sections[section];
+          const hasErrors = sectionValidation && sectionValidation.errors.length > 0;
+          const hasWarnings = sectionValidation && sectionValidation.warnings.length > 0;
+          const isFilled = isSectionFilled(section);
+
+          return (
+            <div
+              key={section}
+              id={`editor-section-${section}`}
+              className={`editor-section bg-white rounded-lg border transition-colors ${
+                hasErrors
+                  ? 'border-red-300 shadow-xs'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              {/* Section Header */}
+              <div
+                className={`px-4 py-3 flex items-center justify-between border-b border-gray-100 ${
+                  section === 'personalInfo' ? '' : 'cursor-pointer'
+                }`}
+                onClick={() => {
+                  if (section === 'personalInfo') return;
+                  const willCollapse = !collapsed[section];
+                  setCollapsed((c) => ({ ...c, [section]: willCollapse }));
+                  setSectionCollapsed(section, willCollapse);
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="text-xl">{SECTION_ICONS[section] || '📌'}</div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-800">
+                      {section === 'personalInfo'
+                        ? 'Personal Information'
+                        : section.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {section === 'personalInfo' ? 'Basic contact details' : ''}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  {/* Validation Status Pill */}
+                  {hasErrors ? (
+                    <span
+                      title={sectionValidation.errors.map((e) => e.message).join('\n')}
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 border border-red-200"
+                    >
+                      <span>⚠️</span> {sectionValidation.errors.length}{' '}
+                      {sectionValidation.errors.length === 1 ? 'error' : 'errors'}
+                    </span>
+                  ) : hasWarnings ? (
+                    <span
+                      title={sectionValidation.warnings.map((w) => w.message).join('\n')}
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200"
+                    >
+                      <span>⚡</span> {sectionValidation.warnings.length}{' '}
+                      {sectionValidation.warnings.length === 1 ? 'tip' : 'tips'}
+                    </span>
+                  ) : isFilled ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                      <span>✓</span> Complete
+                    </span>
+                  ) : null}
+
+                  {section === 'personalInfo' ? (
+                    <span className="text-xs text-gray-400 font-medium">Required</span>
+                  ) : (
+                    <svg
+                      className={`w-4 h-4 text-gray-500 transform transition-transform ${
+                        collapsed[section] ? '-rotate-90' : 'rotate-0'
+                      }`}
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M6 8l4 4 4-4"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
                 </div>
               </div>
-              <div>
-                {section === 'personalInfo' ? (
-                  <span className="text-xs text-gray-400">Required</span>
-                ) : (
-                  <svg className={`w-4 h-4 text-gray-500 transform transition-transform ${collapsed[section] ? '-rotate-90' : 'rotate-0'}`} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
+
+              {/* Section Body (collapsible) */}
+              <div className={`${collapsed[section] ? 'hidden' : 'block'} p-4`}>
+                {renderSection(section)}
               </div>
             </div>
-
-            {/* Section Body (collapsible) */}
-            <div className={`${collapsed[section] ? 'hidden' : 'block'} p-4`}>{renderSection(section)}</div>
-          </div>
-        ))}
+          );
+        })}
 
         {orderedSections.length === 0 && (
           <div className="text-center py-12 bg-white rounded-lg border border-dashed border-gray-300">
@@ -216,18 +316,28 @@ const Editor: React.FC = () => {
       <div className="shrink-0 bg-white border-t border-gray-200 px-6 py-3">
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-4">
-            {orderedSections.map((section) => (
-              <span
-                key={section}
-                className="flex items-center gap-1 text-gray-600"
-                title={section.replace(/([A-Z])/g, ' $1').trim()}
-              >
-                {SECTION_ICONS[section] || '📌'}
-              </span>
-            ))}
+            {orderedSections.map((section) => {
+              const secVal = validationReport.sections[section];
+              const secHasErr = secVal && secVal.errors.length > 0;
+              return (
+                <span
+                  key={section}
+                  className={`flex items-center gap-1 ${secHasErr ? 'text-red-500 font-semibold' : 'text-gray-600'}`}
+                  title={`${section.replace(/([A-Z])/g, ' $1').trim()}${secHasErr ? ' (has errors)' : ''}`}
+                >
+                  {SECTION_ICONS[section] || '📌'}
+                  {secHasErr && <span className="text-xs text-red-500">•</span>}
+                </span>
+              );
+            })}
           </div>
-          <div className="text-gray-500">
-            <span className="font-medium">{orderedSections.length}</span> sections active
+          <div className="text-gray-500 text-xs">
+            <span className="font-medium text-gray-700">{orderedSections.length}</span> active sections
+            {validationReport.totalErrors > 0 && (
+              <span className="ml-2 font-medium text-red-600">
+                • {validationReport.totalErrors} issue{validationReport.totalErrors !== 1 ? 's' : ''} to resolve
+              </span>
+            )}
           </div>
         </div>
       </div>

@@ -146,10 +146,14 @@ export interface ATSScore {
   formatting: number;
   completeness: number;
   warnings: ATSWarning[];
+  matchedKeywords?: string[];
+  missingKeywords?: string[];
+  actionVerbScore?: number;
+  metricsScore?: number;
 }
 
 export interface ATSWarning {
-  type: 'missing-keyword' | 'buzzword' | 'long-paragraph' | 'font' | 'incomplete';
+  type: 'missing-keyword' | 'buzzword' | 'long-paragraph' | 'font' | 'incomplete' | 'metrics' | 'action-verb' | 'duplicate';
   message: string;
   section: string;
   severity: 'low' | 'medium' | 'high';

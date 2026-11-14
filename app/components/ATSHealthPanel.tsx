@@ -2,7 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useResumeStore } from '../store/resumeStore';
-import { calculateATSScore, extractKeywords, findMatchingKeywords, findMissingKeywords, ATS_SAFE_FONTS } from '../utils/ats';
+import {
+  calculateATSScore,
+  extractKeywords,
+  findMatchingKeywords,
+  findMissingKeywords,
+  getResumeText,
+  ATS_SAFE_FONTS,
+} from '../utils/ats';
 import { ATSScore } from '../types/resume';
 
 const ATSHealthPanel: React.FC = () => {
@@ -17,11 +24,14 @@ const ATSHealthPanel: React.FC = () => {
       const score = calculateATSScore(resumes[currentResumeId], jobDescription);
       setAtsScore(score);
 
-      if (jobDescription) {
+      if (jobDescription && jobDescription.trim().length > 0) {
         const jdKeywords = extractKeywords(jobDescription);
-        const resumeText = JSON.stringify(resumes[currentResumeId]);
+        const resumeText = getResumeText(resumes[currentResumeId]);
         setMatchedKeywords(findMatchingKeywords(resumeText, jdKeywords));
         setMissingKeywords(findMissingKeywords(resumeText, jdKeywords));
+      } else {
+        setMatchedKeywords(score.matchedKeywords || []);
+        setMissingKeywords(score.missingKeywords || []);
       }
     }
   }, [currentResumeId, resumes, jobDescription]);

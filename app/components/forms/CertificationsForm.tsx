@@ -247,6 +247,13 @@ const CertificationEditor: React.FC<CertificationEditorProps> = ({ certification
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    if (errors[name]) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[name];
+        return copy;
+      });
+    }
   };
 
   const [errors, setErrors] = useState<{ [k: string]: string }>({});
@@ -254,21 +261,21 @@ const CertificationEditor: React.FC<CertificationEditorProps> = ({ certification
   const handleSave = () => {
     const newErrors: { [k: string]: string } = {};
     if (!isRequired(formData.name as string)) newErrors.name = 'Certification name is required';
-    if (!isRequired(formData.issuer as string)) newErrors.issuer = 'Issuer is required';
-    if (formData.link && !isValidURL(formData.link)) newErrors.link = 'Invalid URL';
-    if (formData.credentialId && !maxLength(formData.credentialId, 100)) newErrors.credentialId = 'ID too long';
+    if (!isRequired(formData.issuer as string)) newErrors.issuer = 'Issuing organization is required';
+    if (formData.link && !isValidURL(formData.link)) newErrors.link = 'Enter a valid URL (e.g. https://credly.com/...)';
+    if (formData.credentialId && !maxLength(formData.credentialId, 100)) newErrors.credentialId = 'ID is too long (max 100 characters)';
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
     onSave({
       id: formData.id || Date.now().toString(),
-      name: formData.name || '',
-      issuer: formData.issuer || '',
-      date: formData.date || '',
-      expiryDate: formData.expiryDate || '',
-      credentialId: formData.credentialId || '',
-      link: formData.link || '',
+      name: (formData.name || '').trim(),
+      issuer: (formData.issuer || '').trim(),
+      date: (formData.date || '').trim(),
+      expiryDate: (formData.expiryDate || '').trim(),
+      credentialId: (formData.credentialId || '').trim(),
+      link: (formData.link || '').trim(),
     });
   };
 
@@ -276,28 +283,36 @@ const CertificationEditor: React.FC<CertificationEditorProps> = ({ certification
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Certification Name *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Certification Name <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
             name="name"
             placeholder="AWS Certified Solutions Architect"
             value={formData.name || ''}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className={`w-full p-3 border rounded-lg focus:ring-2 ${
+              errors.name ? 'border-red-400 bg-red-50/20' : 'border-gray-300 focus:ring-blue-500'
+            }`}
           />
-          {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+          {errors.name && <p className="text-red-500 text-xs mt-1">⚠️ {errors.name}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Issuing Organization *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Issuing Organization <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
             name="issuer"
             placeholder="Amazon Web Services"
             value={formData.issuer || ''}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className={`w-full p-3 border rounded-lg focus:ring-2 ${
+              errors.issuer ? 'border-red-400 bg-red-50/20' : 'border-gray-300 focus:ring-blue-500'
+            }`}
           />
-          {errors.issuer && <p className="text-red-500 text-xs mt-1">{errors.issuer}</p>}
+          {errors.issuer && <p className="text-red-500 text-xs mt-1">⚠️ {errors.issuer}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Issue Date</label>
@@ -329,8 +344,11 @@ const CertificationEditor: React.FC<CertificationEditorProps> = ({ certification
             placeholder="ABC123XYZ"
             value={formData.credentialId || ''}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className={`w-full p-3 border rounded-lg focus:ring-2 ${
+              errors.credentialId ? 'border-red-400 bg-red-50/20' : 'border-gray-300 focus:ring-blue-500'
+            }`}
           />
+          {errors.credentialId && <p className="text-red-500 text-xs mt-1">⚠️ {errors.credentialId}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Credential URL</label>
@@ -340,9 +358,11 @@ const CertificationEditor: React.FC<CertificationEditorProps> = ({ certification
             placeholder="https://www.credly.com/badges/..."
             value={formData.link || ''}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className={`w-full p-3 border rounded-lg focus:ring-2 ${
+              errors.link ? 'border-red-400 bg-red-50/20' : 'border-gray-300 focus:ring-blue-500'
+            }`}
           />
-          {errors.link && <p className="text-red-500 text-xs mt-1">{errors.link}</p>}
+          {errors.link && <p className="text-red-500 text-xs mt-1">⚠️ {errors.link}</p>}
         </div>
       </div>
 

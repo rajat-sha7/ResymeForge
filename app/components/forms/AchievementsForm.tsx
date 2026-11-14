@@ -169,23 +169,30 @@ const AchievementEditor: React.FC<AchievementEditorProps> = ({ achievement, onSa
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    if (errors[name]) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[name];
+        return copy;
+      });
+    }
   };
 
   const handleSave = () => {
     const newErrors: { [k: string]: string } = {};
-    if (!isRequired(formData.title as string)) newErrors.title = 'Title is required';
-    if (formData.description && !maxLength(formData.description, 1000)) newErrors.description = 'Description too long';
+    if (!isRequired(formData.title as string)) newErrors.title = 'Achievement title is required';
+    if (formData.description && !maxLength(formData.description, 1000)) newErrors.description = 'Description is too long (max 1000 characters)';
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
     onSave({
       id: formData.id || Date.now().toString(),
-      title: formData.title || '',
-      description: formData.description || '',
-      date: formData.date || '',
+      title: (formData.title || '').trim(),
+      description: (formData.description || '').trim(),
+      date: (formData.date || '').trim(),
       category: formData.category || 'other',
-      impact: formData.impact || '',
+      impact: (formData.impact || '').trim(),
     });
   };
 
@@ -193,16 +200,19 @@ const AchievementEditor: React.FC<AchievementEditorProps> = ({ achievement, onSa
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Achievement Title *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Achievement Title <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
             name="title"
             placeholder="Employee of the Year Award"
             value={formData.title || ''}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className={`w-full p-3 border rounded-lg focus:ring-2 ${errors.title ? 'border-red-400 bg-red-50/20' : 'border-gray-300 focus:ring-blue-500'
+              }`}
           />
-          {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
+          {errors.title && <p className="text-red-500 text-xs mt-1">⚠️ {errors.title}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>

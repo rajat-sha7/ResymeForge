@@ -198,20 +198,40 @@ const CustomItemEditor: React.FC<CustomItemEditorProps> = ({ item, onSave, onCan
   });
   const [bulletInput, setBulletInput] = useState('');
   const [errors, setErrors] = useState<{ [k: string]: string }>({});
+  const [bulletError, setBulletError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    if (errors[name]) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[name];
+        return copy;
+      });
+    }
   };
 
   const addBullet = () => {
-    if (bulletInput.trim()) {
-      setFormData({
-        ...formData,
-        bullets: [...(formData.bullets || []), bulletInput.trim()],
-      });
-      setBulletInput('');
+    const trimmed = bulletInput.trim();
+    if (!trimmed) {
+      setBulletError('Please enter bullet content');
+      return;
     }
+    if (trimmed.length < 10) {
+      setBulletError('Bullet must be at least 10 characters');
+      return;
+    }
+    if (trimmed.length > 220) {
+      setBulletError('Bullet cannot exceed 220 characters');
+      return;
+    }
+    setFormData({
+      ...formData,
+      bullets: [...(formData.bullets || []), trimmed],
+    });
+    setBulletInput('');
+    setBulletError(null);
   };
 
   const removeBullet = (index: number) => {
@@ -225,20 +245,20 @@ const CustomItemEditor: React.FC<CustomItemEditorProps> = ({ item, onSave, onCan
     const newErrors: { [k: string]: string } = {};
     if (!isRequired(formData.title as string)) newErrors.title = 'Title is required';
     if (formData.link && !isValidURL(formData.link)) newErrors.link = 'Invalid URL';
-    if (formData.description && !maxLength(formData.description, 1000)) newErrors.description = 'Description too long';
-    if (!validateBullets(formData.bullets)) newErrors.bullets = 'Bullets must be 10-220 chars and plain text';
+    if (formData.description && !maxLength(formData.description, 1000)) newErrors.description = 'Description is too long (max 1000 characters)';
+    if (!validateBullets(formData.bullets, 10, 220)) newErrors.bullets = 'Bullets must be 10-220 chars and plain text';
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
     onSave({
       id: formData.id || Date.now().toString(),
-      title: formData.title || '',
-      subtitle: formData.subtitle || '',
-      date: formData.date || '',
-      description: formData.description || '',
+      title: (formData.title || '').trim(),
+      subtitle: (formData.subtitle || '').trim(),
+      date: (formData.date || '').trim(),
+      description: (formData.description || '').trim(),
       bullets: formData.bullets || [],
-      link: formData.link || '',
+      link: (formData.link || '').trim(),
     });
   };
 
@@ -307,22 +327,28 @@ const CustomItemEditor: React.FC<CustomItemEditorProps> = ({ item, onSave, onCan
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Bullet Points</label>
-        <div className="flex gap-2 mb-2">
+        <div className="flex gap-2 mb-1">
           <input
             type="text"
             placeholder="Add a bullet point..."
             value={bulletInput}
-            onChange={(e) => setBulletInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && addBullet()}
+            onChange={(e) => {
+              setBulletInput(e.target.value);
+              if (bulletError) setBulletError(null);
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addBullet())}
             className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
           <button
+            type="button"
             onClick={addBullet}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
           >
             Add
           </button>
         </div>
+        {bulletError && <p className="text-red-500 text-xs mt-1 mb-2">⚠️ {bulletError}</p>}
+        {errors.bullets && <p className="text-red-500 text-xs mt-1 mb-2">⚠️ {errors.bullets}</p>}
         <div className="space-y-2">
           {(formData.bullets || []).map((bullet, index) => (
             <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
