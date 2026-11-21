@@ -22,7 +22,7 @@ const HeroSection: React.FC = () => (
       <Reveal delay={100}>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-5">
           <PrimaryButton href="/builder">Build my resume</PrimaryButton>
-          <TextLink href="#templates">See the templates</TextLink>
+          <TextLink section="templates">See the templates</TextLink>
         </div>
       </Reveal>
     </div>

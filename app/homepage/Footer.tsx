@@ -1,13 +1,16 @@
 import React from "react";
 import Link from "next/link";
 import OptimizedLogo from "./OptimizedLogo";
+import { SectionLink } from "./SectionLink";
 
-const columns = [
+type FooterLink = { label: string; href: string } | { label: string; section: string };
+
+const columns: { title: string; links: FooterLink[] }[] = [
   {
     title: "Product",
     links: [
       { href: "/builder", label: "Resume builder" },
-      { href: "/#templates", label: "Templates" },
+      { section: "templates", label: "Templates" },
       { href: "/toolbox", label: "Toolbox" },
     ],
   },
@@ -35,10 +38,16 @@ const Footer: React.FC = () => (
             <h4 className="home-mono text-[13px] uppercase tracking-[0.04em] text-[#606060]">{col.title}</h4>
             <ul className="mt-4 space-y-3">
               {col.links.map((l) => (
-                <li key={l.href}>
-                  <Link href={l.href} className="text-[16px] hover:underline underline-offset-4">
-                    {l.label}
-                  </Link>
+                <li key={l.label}>
+                  {"section" in l ? (
+                    <SectionLink section={l.section} className="text-[16px] hover:underline underline-offset-4">
+                      {l.label}
+                    </SectionLink>
+                  ) : (
+                    <Link href={l.href} className="text-[16px] hover:underline underline-offset-4">
+                      {l.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

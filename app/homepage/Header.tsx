@@ -3,18 +3,25 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import OptimizedLogo from "./OptimizedLogo";
+import { SectionLink } from "./SectionLink";
 
-const links = [
-  { href: "/#how-it-works", label: "How it works" },
-  { href: "/#templates", label: "Templates" },
+type NavItem = { label: string; href: string } | { label: string; section: string };
+
+const links: NavItem[] = [
+  { section: "how-it-works", label: "How it works" },
+  { section: "templates", label: "Templates" },
   { href: "/insights", label: "Insights" },
   { href: "/about", label: "About" },
 ];
 
+/** Renders a page link, or a scroll-into-view link for homepage sections (keeps `#id` out of the URL). */
+const NavLink: React.FC<{ item: NavItem } & Omit<React.ComponentProps<typeof Link>, "href">> = ({ item, ...rest }) =>
+  "section" in item ? <SectionLink section={item.section} {...rest} /> : <Link href={item.href} {...rest} />;
+
 const Header: React.FC = () => {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const isActive = (href: string) => !href.includes("#") && pathname.startsWith(href);
+  const isActive = (item: NavItem) => "href" in item && pathname.startsWith(item.href);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -40,16 +47,16 @@ const Header: React.FC = () => {
 
           <nav className="hidden md:flex items-center gap-9">
             {links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                aria-current={isActive(l.href) ? "page" : undefined}
+              <NavLink
+                key={l.label}
+                item={l}
+                aria-current={isActive(l) ? "page" : undefined}
                 className={`text-[16px] font-medium text-[#151b26] transition-opacity hover:opacity-70 ${
-                  isActive(l.href) ? "underline decoration-[#c1441a] decoration-2 underline-offset-[10px]" : ""
+                  isActive(l) ? "underline decoration-[#c1441a] decoration-2 underline-offset-[10px]" : ""
                 }`}
               >
                 {l.label}
-              </Link>
+              </NavLink>
             ))}
           </nav>
 
@@ -81,14 +88,14 @@ const Header: React.FC = () => {
         >
           <nav className="flex flex-col gap-1 px-6 pt-6">
             {links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
+              <NavLink
+                key={l.label}
+                item={l}
                 onClick={() => setOpen(false)}
                 className="home-serif border-b border-[#e3dacc] py-4 text-[32px] tracking-[-0.02em] text-[#151b26]"
               >
                 {l.label}
-              </Link>
+              </NavLink>
             ))}
             <Link
               href="/builder"

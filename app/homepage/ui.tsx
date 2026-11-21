@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { SectionLink } from "./SectionLink";
 
 export const ink = "#151b26";
 
@@ -26,14 +27,31 @@ export const PrimaryButton: React.FC<{ href: string; children: React.ReactNode; 
   </Link>
 );
 
-export const TextLink: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => (
-  <Link href={href} className="group inline-flex items-center gap-2 text-[17px] font-medium text-[#151b26] underline-offset-4 hover:underline">
-    {children}
-    <span className="transition-transform group-hover:translate-x-0.5">
-      <Arrow />
-    </span>
-  </Link>
-);
+/** Arrow text link. Pass `section` instead of `href` to scroll to a homepage section without a `#id` in the URL. */
+export const TextLink: React.FC<{ children: React.ReactNode } & ({ href: string; section?: never } | { section: string; href?: never })> = ({
+  href,
+  section,
+  children,
+}) => {
+  const className = "group inline-flex items-center gap-2 text-[17px] font-medium text-[#151b26] underline-offset-4 hover:underline";
+  const content = (
+    <>
+      {children}
+      <span className="transition-transform group-hover:translate-x-0.5">
+        <Arrow />
+      </span>
+    </>
+  );
+  return section ? (
+    <SectionLink section={section} className={className}>
+      {content}
+    </SectionLink>
+  ) : (
+    <Link href={href!} className={className}>
+      {content}
+    </Link>
+  );
+};
 
 /** A cursor with a name tag, as seen in multiplayer editors. */
 export const CursorTag: React.FC<{ label: string; color: string; text?: string; className?: string }> = ({
