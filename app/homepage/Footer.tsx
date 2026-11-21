@@ -27,7 +27,7 @@ const Footer: React.FC = () => (
         <div className="flex flex-col gap-3">
           <OptimizedLogo forgeColor="text-[#151b26]" size="lg" />
           <p className="text-sm text-[#606060] max-w-sm mt-1">
-            Build ATS-compliant, recruiter-approved resumes tailored to your dream roles. Free, private, and session-saved.
+            Build an ATS-friendly resume in your browser. Free to use, no account needed, and your drafts stay on your device.
           </p>
         </div>
         {columns.map((col) => (

@@ -17,7 +17,7 @@ export const insights: Insight[] = [
   {
     slug: 'how-ats-works',
     title: 'How ATS Systems Actually Work (And How to Beat Them)',
-    excerpt: 'Applicant Tracking Systems reject up to 75% of resumes before a human ever reads them. Here is exactly how they parse your resume and what you can do to pass every filter.',
+    excerpt: 'Most online applications pass through an applicant tracking system before a recruiter sees them. Here is how they parse your resume and what you can do to make sure yours reads correctly.',
     content: `
 <h2>What is an ATS?</h2>
 <p>An Applicant Tracking System (ATS) is software used by recruiters and HR teams to collect, sort, scan, and rank job applications. Companies like Workday, Greenhouse, Lever, and Taleo power the hiring pipelines of thousands of major employers.</p>
@@ -92,7 +92,7 @@ export const insights: Insight[] = [
   {
     slug: 'quantify-achievements',
     title: "How to Quantify Your Achievements (Even When You Don't Have Numbers)",
-    excerpt: 'Numbers make bullets 40% more memorable according to hiring research. But what do you do when your job does not come with obvious metrics? We cover 6 techniques.',
+    excerpt: 'A specific number turns a vague bullet into evidence. But what do you do when your job does not come with obvious metrics? We cover six techniques.',
     content: `
 <h2>Why Numbers Matter</h2>
 <p>Bullet points like "Improved team processes" are invisible to both ATS and human readers. Add a number and it becomes: "Reduced sprint planning time by 30% by implementing async pre-reads — saving the team 2 hours per week." Now it is a story and a proof point.</p>
@@ -181,7 +181,7 @@ export const insights: Insight[] = [
   {
     slug: 'remote-job-resume',
     title: 'Optimizing Your Resume for Remote Job Applications in 2026',
-    excerpt: 'Remote roles attract 3–5x more applicants than in-person positions. Your resume needs to specifically signal remote-readiness or it will get lost in the flood.',
+    excerpt: 'Remote roles tend to draw a large pool of applicants. Your resume needs to show you can work well remotely, or it can get lost among the rest.',
     content: `
 <h2>The Remote Job Market Reality</h2>
 <p>A single remote engineering role at a recognizable company can receive 2,000+ applications. ATS filters are aggressive, and recruiters move fast. Your resume has to broadcast that you thrive without an office.</p>

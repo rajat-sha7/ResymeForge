@@ -14,7 +14,7 @@ const features = [
   },
   {
     title: "Sections you control",
-    body: "Drag sections into the order you want, hide the ones you don't need, or add your own.",
+    body: "Turn sections on or off, reset one to start over, or add a custom section of your own.",
   },
   {
     title: "Saved as you go",

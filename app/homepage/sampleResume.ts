@@ -21,7 +21,7 @@ export const sampleResume: ResumeData = {
   professionalSummary: {
     enabled: true,
     summary:
-      "Results-driven product engineer with six years of experience building web apps used by small businesses. Led the rebuild of a billing system that cut failed payments by 18%. Comfortable owning a feature from first sketch to production.",
+      "Product engineer with six years of experience building web apps used by small businesses. Led the rebuild of a billing system that cut failed payments by 18%. Comfortable owning a feature from first sketch to production.",
   },
   skills: [
     { id: "s1", name: "TypeScript", category: "technical", priority: 1 },

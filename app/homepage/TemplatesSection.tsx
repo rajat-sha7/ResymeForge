@@ -11,7 +11,7 @@ const templates: { id: TemplateType; name: string; body: string }[] = [
   { id: "software", name: "Software", body: "Skills grouped by type, with room for projects and links to GitHub and a portfolio." },
   { id: "management", name: "Management", body: "Opens with a summary and experience, with key projects called out before skills." },
   { id: "creative", name: "Creative", body: "A quieter layout that puts experience first and leaves space for portfolio work." },
-  { id: "academic", name: "Academic", body: "Education comes first, followed by research, competencies, and awards." },
+  { id: "academic", name: "Academic", body: "Education comes first, with sections for research, competencies, and awards." },
   { id: "sales", name: "Sales", body: "Leads with experience and gives notable achievements a section of their own." },
   { id: "healthcare", name: "Healthcare", body: "Licenses and certifications sit at the top, where hiring teams look first." },
 ];
@@ -31,8 +31,8 @@ const TemplatesSection: React.FC = () => {
               Six layouts, each arranged for a field
             </h2>
             <p className="mt-6 max-w-[520px] text-[19px] leading-[1.45] text-[#606060]">
-              Every template is a single column of real text, so applicant tracking software can read it. What changes is the
-              order of sections and what each one emphasizes.
+              Every template is built from real, selectable text rather than images, so applicant tracking software can read
+              it. What changes is the order of sections and what each one emphasizes.
             </p>
 
             <div role="tablist" aria-label="Templates" className="mt-10 border-t border-[#e3dacc]">
